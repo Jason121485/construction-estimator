@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAGE TITLE | LeftClick - AI Automation Agency</title>
+    <meta name="description" content="PAGE DESCRIPTION">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================================
+           DESIGN TOKENS
+           ============================================================ */
+        :root {
+            --black: #000000;
+            --black-light: #0a0a0a;
+            --black-medium: #111111;
+            --black-soft: #1a1a1a;
+            --green-primary: #10b981;
+            --green-bright: #34d399;
+            --green-dark: #059669;
+            --green-glow: rgba(16, 185, 129, 0.12);
+            --green-subtle: rgba(16, 185, 129, 0.06);
+            --white: #ffffff;
+            --gray-100: #f5f5f5;
+            --gray-200: #e5e5e5;
+            --gray-300: #d4d4d4;
+            --gray-400: #a3a3a3;
+            --gray-500: #737373;
+            --gray-600: #525252;
+            --gray-700: #404040;
+            --gray-800: #262626;
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* ============================================================
+           BASE RESET
+           ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--black);
+            color: var(--white);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ============================================================
+           UTILITIES
+           ============================================================ */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        @media (min-width: 768px)  { .container { padding: 0 48px; } }
+        @media (min-width: 1200px) { .container { padding: 0 64px; } }
+
+        /* ============================================================
+           SCROLL REVEAL ANIMATIONS
+           ============================================================ */
+        .reveal {
+            opacity: 0;
+            transform: translateY(60px);
+            transition: opacity 0.8s var(--transition-smooth), transform 0.8s var(--transition-smooth);
+        }
+
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
+        .reveal-delay-4 { transition-delay: 0.4s; }
+
+        /* ============================================================
+           NAVIGATION
+           ============================================================ */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 20px 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: all 0.3s var(--transition-smooth);
+        }
+
+        nav.scrolled {
+            background: rgba(0, 0, 0, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            color: var(--white);
+            text-decoration: none;
+        }
+
+        .logo span { color: var(--green-primary); }
+
+        .nav-links {
+            display: none;
+            gap: 40px;
+            list-style: none;
+        }
+
+        @media (min-width: 768px) { .nav-links { display: flex; } }
+
+        .nav-links a {
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active { color: var(--white); }
+
+        .nav-cta {
+            background: var(--green-primary);
+            color: var(--black);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.3s var(--transition-smooth);
+            box-shadow: 0 0 30px var(--green-glow);
+        }
+
+        .nav-cta:hover {
+            background: var(--green-bright);
+            transform: translateY(-2px);
+            box-shadow: 0 0 50px var(--green-glow);
+        }
+
+        /* ============================================================
+           FOOTER
+           ============================================================ */
+        footer {
+            padding: 60px 0 40px;
+            background: var(--black-light);
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            text-align: center;
+        }
+
+        @media (min-width: 768px) {
+            .footer-content {
+                flex-direction: row;
+                justify-content: space-between;
+                text-align: left;
+            }
+        }
+
+        .footer-logo {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--white);
+            letter-spacing: -0.03em;
+        }
+
+        .footer-logo span { color: var(--green-primary); }
+
+        .footer-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover { color: var(--white); }
+
+        .footer-copyright {
+            color: var(--gray-600);
+            font-size: 0.85rem;
+        }
+
+        /* ============================================================
+           SCROLL PROGRESS + CURSOR GLOW
+           ============================================================ */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--green-primary), var(--green-bright));
+            z-index: 9999;
+            transform-origin: left;
+            transform: scaleX(0);
+        }
+
+        .cursor-glow {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s ease;
+            display: none;
+        }
+
+        @media (min-width: 1024px) { .cursor-glow { display: block; } }
+
+        /* ============================================================
+           PAGE-SPECIFIC STYLES — add below this line
+           ============================================================ */
+
+    </style>
+</head>
+<body>
+    <!-- Scroll Progress -->
+    <div class="scroll-progress" id="scrollProgress"></div>
+
+    <!-- Cursor Glow Effect -->
+    <div class="cursor-glow" id="cursorGlow"></div>
+
+    <!-- Navigation -->
+    <nav id="navbar">
+        <div class="container nav-content">
+            <a href="index.html" class="logo">Left<span>Click</span></a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+            <a href="https://calendly.com/leftclick-meeting-30" class="nav-cta" target="_blank" rel="noopener">Book a Call</a>
+        </div>
+    </nav>
+
+    <!-- ============================================================
+         PAGE CONTENT — replace this section
+         ============================================================ -->
+    <main style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 140px 0 100px;">
+        <div class="container" style="text-align: center;">
+            <h1 style="font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; letter-spacing: -0.03em;">
+                Page <span style="color: var(--green-primary);">Title</span>
+            </h1>
+            <p style="color: var(--gray-400); margin-top: 1.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                Page subtitle goes here.
+            </p>
+        </div>
+    </main>
+    <!-- ============================================================
+         END PAGE CONTENT
+         ============================================================ -->
+
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-content">
+            <div class="footer-logo">Left<span>Click</span></div>
+            <ul class="footer-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="https://calendly.com/leftclick-meeting-30" target="_blank" rel="noopener">Book a Call</a></li>
+            </ul>
+            <p class="footer-copyright">&copy; 2025 LeftClick. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initScrollReveal();
+            initNavbar();
+            initCursorGlow();
+            initScrollProgress();
+        });
+
+        function initScrollReveal() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('active');
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        }
+
+        function initNavbar() {
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                navbar.classList.toggle('scrolled', window.pageYOffset > 50);
+            }, { passive: true });
+        }
+
+        function initCursorGlow() {
+            const glow = document.getElementById('cursorGlow');
+            if (!glow) return;
+            let mouseX = 0, mouseY = 0, glowX = 0, glowY = 0;
+
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            }, { passive: true });
+
+            (function animateGlow() {
+                glowX += (mouseX - glowX) * 0.1;
+                glowY += (mouseY - glowY) * 0.1;
+                glow.style.left = glowX + 'px';
+                glow.style.top  = glowY + 'px';
+                requestAnimationFrame(animateGlow);
+            })();
+        }
+
+        function initScrollProgress() {
+            const progress = document.getElementById('scrollProgress');
+            window.addEventListener('scroll', () => {
+                const total = document.documentElement.scrollHeight - window.innerHeight;
+                progress.style.transform = `scaleX(${window.pageYOffset / total})`;
+            }, { passive: true });
+        }
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+    </script>
+</body>
+</html>

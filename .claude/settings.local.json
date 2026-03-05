@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"c:\\\\Users\\\\JasonMorales\\\\Claude Project\\\\LeftClick_s Website \\(take it!\\)\")",
+      "Bash(find \"c:\\\\Users\\\\JasonMorales\\\\Claude Project\\\\LeftClick_s Website \\(take it!\\)\\\\construction-estimator\" -type f)",
+      "Bash(ls -R \"c:/Users/JasonMorales/Claude Project/LeftClick_s Website \\(take it!\\)/construction-estimator\")",
+      "Bash(dir /S /B \"c:\\\\Users\\\\JasonMorales\\\\Claude Project\\\\LeftClick_s Website \\(take it!\\)\\\\construction-estimator\")",
+      "Bash(ls construction-estimator/backend/*.db)",
+      "Bash(python -c \"import main\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\JasonMorales\\Claude Project\\LeftClick_s Website (take it!)\\construction-estimator\\backend",
+      "C:\\Users\\JasonMorales\\.claude\\projects\\c--Users-JasonMorales-Claude-Project-LeftClick-s-Website--take-it--"
+    ]
+  }
+}
