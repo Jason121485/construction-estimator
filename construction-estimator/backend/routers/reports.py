@@ -3,17 +3,20 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Project, Estimate, ProjectFixture
+from models import Project, Estimate, ProjectFixture, User
 from pdf_generator import generate_boq_pdf, generate_engineering_report
+from auth_utils import require_active_subscription, get_project_or_404
 
 router = APIRouter()
 
 
 @router.get("/{project_id}/boq/pdf")
-def boq_pdf(project_id: int, db: Session = Depends(get_db)):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
+def boq_pdf(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    proj = get_project_or_404(project_id, user, db)
     estimates = db.query(Estimate).filter(Estimate.project_id == project_id).all()
     buf = generate_boq_pdf(proj, estimates)
     return StreamingResponse(
@@ -23,10 +26,12 @@ def boq_pdf(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}/engineering/pdf")
-def engineering_pdf(project_id: int, db: Session = Depends(get_db)):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
+def engineering_pdf(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    proj = get_project_or_404(project_id, user, db)
     estimates = db.query(Estimate).filter(Estimate.project_id == project_id).all()
     fixtures  = db.query(ProjectFixture).filter(ProjectFixture.project_id == project_id).all()
     buf = generate_engineering_report(proj, estimates, fixtures)
@@ -37,10 +42,12 @@ def engineering_pdf(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}/boq/data")
-def boq_data(project_id: int, db: Session = Depends(get_db)):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
+def boq_data(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    proj = get_project_or_404(project_id, user, db)
     estimates = db.query(Estimate).filter(Estimate.project_id == project_id).all()
     mat_cost = sum(e.total_cost or 0 for e in estimates if e.category != "Labor")
     lab_cost = sum(e.total_cost or 0 for e in estimates if e.category == "Labor")

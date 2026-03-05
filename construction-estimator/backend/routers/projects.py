@@ -5,7 +5,13 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from database import get_db
-from models import Project, Estimate
+from models import Project, Estimate, User
+from auth_utils import (
+    require_active_subscription,
+    check_project_limit,
+    check_building_type,
+    get_project_or_404,
+)
 
 router = APIRouter()
 
@@ -45,14 +51,31 @@ class ProjectResponse(BaseModel):
         from_attributes = True
 
 
+# ── Routes ────────────────────────────────────────────────────────────────────
+
 @router.get("/", response_model=List[ProjectResponse])
-def list_projects(db: Session = Depends(get_db)):
-    return db.query(Project).order_by(Project.created_at.desc()).all()
+def list_projects(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    return (
+        db.query(Project)
+        .filter(Project.user_id == user.id)
+        .order_by(Project.created_at.desc())
+        .all()
+    )
 
 
 @router.post("/", response_model=ProjectResponse)
-def create_project(body: ProjectCreate, db: Session = Depends(get_db)):
-    proj = Project(**body.model_dump())
+def create_project(
+    body: ProjectCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    check_project_limit(user, db)
+    check_building_type(user, body.building_type)
+
+    proj = Project(**body.model_dump(), user_id=user.id)
     db.add(proj)
     db.commit()
     db.refresh(proj)
@@ -60,18 +83,23 @@ def create_project(body: ProjectCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
-def get_project(project_id: int, db: Session = Depends(get_db)):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
-    return proj
+def get_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    return get_project_or_404(project_id, user, db)
 
 
 @router.put("/{project_id}", response_model=ProjectResponse)
-def update_project(project_id: int, body: ProjectCreate, db: Session = Depends(get_db)):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
+def update_project(
+    project_id: int,
+    body: ProjectCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    proj = get_project_or_404(project_id, user, db)
+    check_building_type(user, body.building_type)
     for k, v in body.model_dump().items():
         setattr(proj, k, v)
     db.commit()
@@ -80,21 +108,24 @@ def update_project(project_id: int, body: ProjectCreate, db: Session = Depends(g
 
 
 @router.delete("/{project_id}")
-def delete_project(project_id: int, db: Session = Depends(get_db)):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    proj = get_project_or_404(project_id, user, db)
     db.delete(proj)
     db.commit()
     return {"message": "Deleted"}
 
 
 @router.get("/{project_id}/summary")
-def project_summary(project_id: int, db: Session = Depends(get_db)):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
-
+def project_summary(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    proj = get_project_or_404(project_id, user, db)
     estimates = db.query(Estimate).filter(Estimate.project_id == project_id).all()
 
     # Costs by discipline
@@ -103,26 +134,25 @@ def project_summary(project_id: int, db: Session = Depends(get_db)):
         disc = e.discipline or "Plumbing"
         discipline_costs[disc] = discipline_costs.get(disc, 0) + (e.total_cost or 0)
 
-    mat_cost  = sum(e.total_cost or 0 for e in estimates if e.category != "Labor")
-    lab_cost  = sum(e.total_cost or 0 for e in estimates if e.category == "Labor")
+    mat_cost = sum(e.total_cost or 0 for e in estimates if e.category != "Labor")
+    lab_cost = sum(e.total_cost or 0 for e in estimates if e.category == "Labor")
 
     # Mobilization cost
-    distance  = proj.distance_from_manila or 0
+    distance = proj.distance_from_manila or 0
     cost_km   = proj.transport_cost_per_km or 50
     workers   = proj.num_workers or 5
-    mob_cost  = distance * cost_km * 2  # round trip
-    # Worker transport: 2 trips × workers × 500
+    mob_cost  = distance * cost_km * 2
     mob_cost += workers * 500 * 2 if distance > 0 else 0
 
-    sub_total  = mat_cost + lab_cost
+    sub_total   = mat_cost + lab_cost
     grand_total = sub_total + mob_cost
 
     return {
-        "project":            ProjectResponse.model_validate(proj),
-        "material_cost":      mat_cost,
-        "labor_cost":         lab_cost,
-        "mobilization_cost":  mob_cost,
-        "grand_total":        grand_total,
-        "item_count":         len(estimates),
-        "discipline_costs":   discipline_costs,
+        "project":           ProjectResponse.model_validate(proj),
+        "material_cost":     mat_cost,
+        "labor_cost":        lab_cost,
+        "mobilization_cost": mob_cost,
+        "grand_total":       grand_total,
+        "item_count":        len(estimates),
+        "discipline_costs":  discipline_costs,
     }

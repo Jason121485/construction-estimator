@@ -4,7 +4,8 @@ from typing import Optional
 from pydantic import BaseModel
 
 from database import get_db
-from models import Project, Estimate, SolarCalculation
+from models import Project, Estimate, SolarCalculation, User
+from auth_utils import require_active_subscription, get_project_or_404
 from solar_engine import (
     perform_solar_analysis, PHILIPPINE_PSH, PANEL_WATTAGES,
     INVERTER_SIZES_KW, BATTERY_DOD, SYSTEM_TYPES,
@@ -74,10 +75,9 @@ def save_and_generate_boq(
     project_id: int,
     req: SaveSolarRequest,
     db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
 ):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
+    proj = get_project_or_404(project_id, user, db)
 
     result = perform_solar_analysis(
         monthly_kwh       = req.monthly_kwh,
@@ -128,7 +128,11 @@ def save_and_generate_boq(
 
 
 @router.get("/{project_id}/latest")
-def get_latest(project_id: int, db: Session = Depends(get_db)):
+def get_latest(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
     calc = (
         db.query(SolarCalculation)
         .filter(SolarCalculation.project_id == project_id)

@@ -4,8 +4,9 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
 from database import get_db
-from models import Project, Estimate, StructuralCalculation
+from models import Project, Estimate, StructuralCalculation, User
 from structural_engine import perform_structural_takeoff, CEMENT_BAGS_PER_M3
+from auth_utils import require_active_subscription, get_project_or_404
 
 router = APIRouter()
 
@@ -72,10 +73,9 @@ def save_and_generate_boq(
     project_id: int,
     req: SaveStructuralRequest,
     db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
 ):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
+    proj = get_project_or_404(project_id, user, db)
 
     elements_raw = [e.model_dump(exclude_none=True) for e in req.elements]
     result = perform_structural_takeoff(
@@ -125,7 +125,11 @@ def save_and_generate_boq(
 
 
 @router.get("/{project_id}/latest")
-def get_latest(project_id: int, db: Session = Depends(get_db)):
+def get_latest(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
     calc = (
         db.query(StructuralCalculation)
         .filter(StructuralCalculation.project_id == project_id)

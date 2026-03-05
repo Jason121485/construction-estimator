@@ -4,8 +4,9 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
 from database import get_db
-from models import Project, Estimate, ElectricalCalculation
+from models import Project, Estimate, ElectricalCalculation, User
 from electrical_engine import perform_electrical_analysis, DEMAND_FACTOR_TABLE, WIRE_SIZES_MM2, BREAKER_SIZES
+from auth_utils import require_active_subscription, get_project_or_404
 
 router = APIRouter()
 
@@ -81,10 +82,9 @@ def save_and_generate_boq(
     project_id: int,
     req: SaveElectricalRequest,
     db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
 ):
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(404, "Project not found")
+    proj = get_project_or_404(project_id, user, db)
 
     circuits_raw = [c.model_dump() for c in req.circuits]
     result = perform_electrical_analysis(
@@ -136,7 +136,11 @@ def save_and_generate_boq(
 
 
 @router.get("/{project_id}/latest")
-def get_latest(project_id: int, db: Session = Depends(get_db)):
+def get_latest(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
     calc = (
         db.query(ElectricalCalculation)
         .filter(ElectricalCalculation.project_id == project_id)

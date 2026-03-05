@@ -1,8 +1,9 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FolderOpen, Droplets, Database,
-  Calculator, FileText, Settings, HardHat, Zap, Building2, Sun,
+  Calculator, FileText, Settings, HardHat, Zap, Building2, Sun, LogOut,
 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 const NAV_SECTIONS = [
   {
@@ -32,7 +33,25 @@ const NAV_SECTIONS = [
   },
 ]
 
+const PLAN_BADGE = {
+  trial:        { label: 'Trial',        cls: 'bg-yellow-900/50 text-yellow-400' },
+  starter:      { label: 'Starter',      cls: 'bg-navy/80 text-gray-300' },
+  professional: { label: 'Pro',          cls: 'bg-blue-900/50 text-blue-300' },
+  enterprise:   { label: 'Enterprise',   cls: 'bg-emerald-900/50 text-emerald-300' },
+}
+
 export default function Sidebar() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
+
+  const plan  = user?.subscription_plan ?? 'starter'
+  const badge = PLAN_BADGE[plan] ?? PLAN_BADGE.starter
+
   return (
     <aside className="w-56 flex-shrink-0 bg-surface border-r border-white/10 flex flex-col">
       {/* Logo */}
@@ -75,10 +94,25 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* User footer */}
       <div className="px-4 py-3 border-t border-white/10">
-        <p className="text-xs text-gray-600">Philippine market prices</p>
-        <p className="text-xs text-gray-700 mt-0.5">v2.0 — 4 Disciplines</p>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs text-gray-300 font-medium truncate">
+              {user?.full_name || user?.email || 'User'}
+            </p>
+            <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${badge.cls}`}>
+              {badge.label}
+            </span>
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Log out"
+            className="p-1.5 text-gray-500 hover:text-white hover:bg-white/10 rounded transition-colors shrink-0"
+          >
+            <LogOut size={13} />
+          </button>
+        </div>
       </div>
     </aside>
   )

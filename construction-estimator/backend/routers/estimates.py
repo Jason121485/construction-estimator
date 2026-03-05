@@ -4,7 +4,8 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
 from database import get_db
-from models import Project, Estimate, Material
+from models import Project, Estimate, Material, User
+from auth_utils import require_active_subscription, get_project_or_404
 
 router = APIRouter()
 
@@ -56,16 +57,23 @@ class AutoGenRequest(BaseModel):
 
 
 @router.get("/{project_id}", response_model=List[EstimateItemResponse])
-def get_estimate(project_id: int, db: Session = Depends(get_db)):
-    if not db.query(Project).filter(Project.id == project_id).first():
-        raise HTTPException(404, "Project not found")
+def get_estimate(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    get_project_or_404(project_id, user, db)
     return db.query(Estimate).filter(Estimate.project_id == project_id).all()
 
 
 @router.post("/{project_id}/items", response_model=EstimateItemResponse)
-def add_item(project_id: int, body: EstimateItemCreate, db: Session = Depends(get_db)):
-    if not db.query(Project).filter(Project.id == project_id).first():
-        raise HTTPException(404, "Project not found")
+def add_item(
+    project_id: int,
+    body: EstimateItemCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    get_project_or_404(project_id, user, db)
     total = body.quantity * body.unit_price
     data  = body.model_dump()
     item  = Estimate(project_id=project_id, total_cost=total, **data)
@@ -78,8 +86,11 @@ def add_item(project_id: int, body: EstimateItemCreate, db: Session = Depends(ge
 @router.put("/{project_id}/items/{item_id}", response_model=EstimateItemResponse)
 def update_item(
     project_id: int, item_id: int,
-    body: EstimateItemCreate, db: Session = Depends(get_db)
+    body: EstimateItemCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
 ):
+    get_project_or_404(project_id, user, db)
     item = db.query(Estimate).filter(
         Estimate.id == item_id, Estimate.project_id == project_id
     ).first()
@@ -94,7 +105,12 @@ def update_item(
 
 
 @router.delete("/{project_id}/items/{item_id}")
-def delete_item(project_id: int, item_id: int, db: Session = Depends(get_db)):
+def delete_item(
+    project_id: int, item_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    get_project_or_404(project_id, user, db)
     item = db.query(Estimate).filter(
         Estimate.id == item_id, Estimate.project_id == project_id
     ).first()
@@ -106,9 +122,13 @@ def delete_item(project_id: int, item_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{project_id}/auto-generate")
-def auto_generate(project_id: int, req: AutoGenRequest, db: Session = Depends(get_db)):
-    if not db.query(Project).filter(Project.id == project_id).first():
-        raise HTTPException(404, "Project not found")
+def auto_generate(
+    project_id: int,
+    req: AutoGenRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
+    get_project_or_404(project_id, user, db)
 
     discipline = req.discipline or "Plumbing"
 
@@ -163,7 +183,11 @@ def auto_generate(project_id: int, req: AutoGenRequest, db: Session = Depends(ge
 
 
 @router.get("/{project_id}/summary")
-def estimate_summary(project_id: int, db: Session = Depends(get_db)):
+def estimate_summary(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_active_subscription),
+):
     items = db.query(Estimate).filter(Estimate.project_id == project_id).all()
 
     by_cat: Dict[str, float] = {}

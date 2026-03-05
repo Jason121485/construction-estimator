@@ -4,6 +4,35 @@ from sqlalchemy.sql import func
 from database import Base
 
 
+# ── Authentication ────────────────────────────────────────────────────────────
+
+class User(Base):
+    __tablename__ = "users"
+
+    id                  = Column(Integer, primary_key=True, index=True)
+    email               = Column(String, unique=True, nullable=False, index=True)
+    password_hash       = Column(String, nullable=False)
+    full_name           = Column(String, nullable=True)
+    company_name        = Column(String, nullable=True)
+
+    # Role: owner | engineer | viewer
+    role                = Column(String, default="owner", nullable=False)
+
+    # Subscription: starter | professional | enterprise
+    subscription_plan   = Column(String, default="starter", nullable=False)
+
+    # Status: trial | active | expired
+    subscription_status = Column(String, default="trial", nullable=False)
+
+    trial_start         = Column(DateTime, nullable=True)
+    trial_end           = Column(DateTime, nullable=True)
+    created_at          = Column(DateTime, server_default=func.now())
+
+    projects            = relationship("Project", back_populates="owner")
+
+
+# ── Materials ─────────────────────────────────────────────────────────────────
+
 class Material(Base):
     __tablename__ = "materials"
 
@@ -36,6 +65,10 @@ class Project(Base):
     num_workers = Column(Integer, default=5)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Owner (nullable for migration safety — existing rows get NULL)
+    user_id             = Column(Integer, ForeignKey("users.id"), nullable=True)
+    owner               = relationship("User", back_populates="projects")
 
     estimates = relationship("Estimate", back_populates="project", cascade="all, delete-orphan")
     fixtures = relationship("ProjectFixture", back_populates="project", cascade="all, delete-orphan")

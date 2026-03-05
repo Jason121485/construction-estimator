@@ -1,8 +1,13 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import create_tables
 from routers import projects, materials, calculations, estimates, reports
 from routers import electrical, structural, solar
+from routers import auth
 from seed_data import seed_database
 
 app = FastAPI(
@@ -14,9 +19,20 @@ app = FastAPI(
     ),
 )
 
+# ── CORS ──────────────────────────────────────────────────────────────────────
+# Add NEXT_PUBLIC_FRONTEND_URL to .env / Render env vars for production
+_frontend_url = os.getenv("FRONTEND_URL", "")
+_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+]
+if _frontend_url:
+    _origins.append(_frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,14 +45,17 @@ async def startup_event():
     seed_database()
 
 
-# ── Existing routers ──────────────────────────────────────────────────────
+# ── Auth ──────────────────────────────────────────────────────────────────────
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+
+# ── Existing routers ──────────────────────────────────────────────────────────
 app.include_router(projects.router,     prefix="/api/projects",     tags=["Projects"])
 app.include_router(materials.router,    prefix="/api/materials",    tags=["Materials"])
 app.include_router(calculations.router, prefix="/api/calculations", tags=["Plumbing"])
 app.include_router(estimates.router,    prefix="/api/estimates",    tags=["Estimates"])
 app.include_router(reports.router,      prefix="/api/reports",      tags=["Reports"])
 
-# ── New discipline routers ────────────────────────────────────────────────
+# ── Discipline routers ────────────────────────────────────────────────────────
 app.include_router(electrical.router, prefix="/api/electrical", tags=["Electrical"])
 app.include_router(structural.router, prefix="/api/structural", tags=["Structural"])
 app.include_router(solar.router,      prefix="/api/solar",      tags=["Solar"])
