@@ -9,5 +9,10 @@ export function parseApiError(err, fallback = 'Request failed. Please try again.
     return 'Server is starting up — please wait a moment and try again.'
   }
   const detail = err.response?.data?.detail
-  return typeof detail === 'string' ? detail : fallback
+  if (typeof detail === 'string') return detail
+  // FastAPI 422 returns detail as an array of validation errors
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail[0]?.msg ?? fallback
+  }
+  return fallback
 }
