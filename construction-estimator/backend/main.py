@@ -26,6 +26,7 @@ _origins = [
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "https://steady-sorbet-805282.netlify.app",
+    "https://constructionestimatepro.netlify.app",
 ]
 _extra = os.getenv("FRONTEND_URL", "")
 if _extra and _extra not in _origins:
