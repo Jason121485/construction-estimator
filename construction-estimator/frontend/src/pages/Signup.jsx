@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import api from '../utils/api'
 
 export default function Signup() {
   const { signup } = useAuth()
@@ -13,8 +14,14 @@ export default function Signup() {
     password:     '',
     confirm:      '',
   })
-  const [error, setError]   = useState('')
+  const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
+  const [warming, setWarming] = useState(true)
+
+  // Ping the backend on mount so Render wakes up before the user submits
+  useEffect(() => {
+    api.get('/health').finally(() => setWarming(false))
+  }, [])
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -34,7 +41,14 @@ export default function Signup() {
       await signup(form.email, form.password, form.full_name, form.company_name)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.detail || 'Signup failed. Please try again.')
+      const detail = err.response?.data?.detail
+      if (!err.response) {
+        setError('Server is starting up — please wait a moment and try again.')
+      } else if (typeof detail === 'string') {
+        setError(detail)
+      } else {
+        setError('Signup failed. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
@@ -128,9 +142,9 @@ export default function Signup() {
             <button
               type="submit"
               className="btn-accent w-full justify-center"
-              disabled={loading}
+              disabled={loading || warming}
             >
-              {loading ? 'Creating account…' : 'Start Free Trial'}
+              {warming ? 'Connecting…' : loading ? 'Creating account…' : 'Start Free Trial'}
             </button>
           </form>
 

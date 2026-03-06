@@ -1,14 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import api from '../utils/api'
 
 export default function Login() {
   const { login } = useAuth()
   const navigate  = useNavigate()
 
-  const [form, setForm]     = useState({ email: '', password: '' })
-  const [error, setError]   = useState('')
+  const [form, setForm]       = useState({ email: '', password: '' })
+  const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
+  const [warming, setWarming] = useState(true)
+
+  useEffect(() => {
+    api.get('/health').finally(() => setWarming(false))
+  }, [])
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -20,7 +26,14 @@ export default function Login() {
       await login(form.email, form.password)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid email or password')
+      const detail = err.response?.data?.detail
+      if (!err.response) {
+        setError('Server is starting up — please wait a moment and try again.')
+      } else if (typeof detail === 'string') {
+        setError(detail)
+      } else {
+        setError('Invalid email or password')
+      }
     } finally {
       setLoading(false)
     }
@@ -77,9 +90,9 @@ export default function Login() {
             <button
               type="submit"
               className="btn-accent w-full justify-center"
-              disabled={loading}
+              disabled={loading || warming}
             >
-              {loading ? 'Signing in…' : 'Sign In'}
+              {warming ? 'Connecting…' : loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
         </div>
