@@ -6,8 +6,9 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
+import bcrypt as _bcrypt
+
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -36,16 +37,14 @@ PLAN_BUILDING_TYPES = {
 
 # ── Password helpers ──────────────────────────────────────────────────────────
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__truncate_error=False)
-
-
 def hash_password(password: str) -> str:
-    # bcrypt silently truncates at 72 bytes; do it explicitly to avoid ValueError
-    return pwd_context.hash(password.encode("utf-8")[:72])
+    pw = password.encode("utf-8")[:72]
+    return _bcrypt.hashpw(pw, _bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain.encode("utf-8")[:72], hashed)
+    pw = plain.encode("utf-8")[:72]
+    return _bcrypt.checkpw(pw, hashed.encode("utf-8"))
 
 
 # ── JWT helpers ───────────────────────────────────────────────────────────────
