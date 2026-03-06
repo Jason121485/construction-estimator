@@ -20,21 +20,15 @@ app = FastAPI(
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-# Add NEXT_PUBLIC_FRONTEND_URL to .env / Render env vars for production
-_origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "https://steady-sorbet-805282.netlify.app",
-    "https://constructionestimatepro.netlify.app",
-]
-_extra = os.getenv("FRONTEND_URL", "")
-if _extra and _extra not in _origins:
-    _origins.append(_extra)
-
+# allow_origin_regex covers production + all deploy-preview subdomains on Netlify
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_origins,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+    ],
+    allow_origin_regex=r"https://.*\.netlify\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
