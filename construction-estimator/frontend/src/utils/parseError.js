@@ -14,5 +14,5 @@ export function parseApiError(err, fallback = 'Request failed. Please try again.
   if (Array.isArray(detail) && detail.length > 0) {
     return detail[0]?.msg ?? fallback
   }
-  return fallback
+  return `${fallback} (HTTP ${err.response.status})`
 }
