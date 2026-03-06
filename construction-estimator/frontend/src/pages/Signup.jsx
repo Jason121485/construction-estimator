@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import api from '../utils/api'
+import { useWarmup } from '../hooks/useWarmup'
+import { parseApiError } from '../utils/parseError'
 
 export default function Signup() {
   const { signup } = useAuth()
   const navigate   = useNavigate()
+  const warming    = useWarmup()
 
   const [form, setForm] = useState({
     full_name:    '',
@@ -16,12 +18,6 @@ export default function Signup() {
   })
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
-  const [warming, setWarming] = useState(true)
-
-  // Ping the backend on mount so Render wakes up before the user submits
-  useEffect(() => {
-    api.get('/health').finally(() => setWarming(false))
-  }, [])
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -41,14 +37,7 @@ export default function Signup() {
       await signup(form.email, form.password, form.full_name, form.company_name)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      const detail = err.response?.data?.detail
-      if (!err.response) {
-        setError('Server is starting up — please wait a moment and try again.')
-      } else if (typeof detail === 'string') {
-        setError(detail)
-      } else {
-        setError('Signup failed. Please try again.')
-      }
+      setError(parseApiError(err, 'Signup failed. Please try again.'))
     } finally {
       setLoading(false)
     }

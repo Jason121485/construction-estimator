@@ -5,6 +5,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+// ── Backend warmup (singleton — fires once regardless of how many callers) ────
+let _warmupPromise = null
+export function warmup() {
+  if (!_warmupPromise) {
+    _warmupPromise = api.get('/health').catch(() => {})
+  }
+  return _warmupPromise
+}
+
 // ── Auth interceptors ─────────────────────────────────────────────────────────
 
 // Attach Bearer token to every request
