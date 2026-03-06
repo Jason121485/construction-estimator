@@ -46,6 +46,10 @@ class UserOut(BaseModel):
     trial_start: Optional[datetime]
     trial_end: Optional[datetime]
     days_remaining: Optional[int] = None
+    # Stripe billing fields
+    stripe_subscription_status: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    next_billing_date: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -68,16 +72,19 @@ def _compute_days_remaining(user: User) -> Optional[int]:
 
 def _user_to_out(user: User) -> UserOut:
     return UserOut(
-        id                  = user.id,
-        email               = user.email,
-        full_name           = user.full_name,
-        company_name        = user.company_name,
-        role                = user.role,
-        subscription_plan   = user.subscription_plan,
-        subscription_status = user.subscription_status,
-        trial_start         = user.trial_start,
-        trial_end           = user.trial_end,
-        days_remaining      = _compute_days_remaining(user),
+        id                         = user.id,
+        email                      = user.email,
+        full_name                  = user.full_name,
+        company_name               = user.company_name,
+        role                       = user.role,
+        subscription_plan          = user.subscription_plan,
+        subscription_status        = user.subscription_status,
+        trial_start                = user.trial_start,
+        trial_end                  = user.trial_end,
+        days_remaining             = _compute_days_remaining(user),
+        stripe_subscription_status = user.stripe_subscription_status,
+        stripe_subscription_id     = user.stripe_subscription_id,
+        next_billing_date          = user.next_billing_date,
     )
 
 

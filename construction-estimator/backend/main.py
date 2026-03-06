@@ -8,7 +8,8 @@ from fastapi.responses import JSONResponse
 from database import create_tables
 from routers import projects, materials, calculations, estimates, reports
 from routers import electrical, structural, solar
-from routers import auth
+from routers import auth, billing
+from routers import subcontractors, overhead, bid, civil
 from seed_data import seed_database
 
 app = FastAPI(
@@ -48,7 +49,8 @@ async def startup_event():
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
-app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(auth.router,    prefix="/api/auth",    tags=["Auth"])
+app.include_router(billing.router, prefix="/api/billing", tags=["Billing"])
 
 # ── Existing routers ──────────────────────────────────────────────────────────
 app.include_router(projects.router,     prefix="/api/projects",     tags=["Projects"])
@@ -61,6 +63,12 @@ app.include_router(reports.router,      prefix="/api/reports",      tags=["Repor
 app.include_router(electrical.router, prefix="/api/electrical", tags=["Electrical"])
 app.include_router(structural.router, prefix="/api/structural", tags=["Structural"])
 app.include_router(solar.router,      prefix="/api/solar",      tags=["Solar"])
+app.include_router(civil.router,      prefix="/api/civil",      tags=["Civil"])
+
+# ── Professional estimating routers ───────────────────────────────────────────
+app.include_router(subcontractors.router, prefix="/api/subcontractors", tags=["Subcontractors"])
+app.include_router(overhead.router,       prefix="/api/overhead",       tags=["Overhead"])
+app.include_router(bid.router,            prefix="/api/bid",            tags=["Bid"])
 
 
 @app.get("/")

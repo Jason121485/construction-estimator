@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FolderOpen, Droplets, Database,
   Calculator, FileText, Settings, HardHat, Zap, Building2, Sun, LogOut,
+  Truck, Layers, BarChart3, Construction, DollarSign, Lightbulb, CreditCard,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -11,24 +12,35 @@ const NAV_SECTIONS = [
     items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard'    },
       { to: '/projects',  icon: FolderOpen,       label: 'Projects'     },
+      { to: '/billing',   icon: CreditCard,        label: 'Billing'      },
     ],
   },
   {
     label: 'Calculators',
     items: [
-      { to: '/electrical', icon: Zap,       label: 'Electrical'    },
-      { to: '/calculator', icon: Droplets,  label: 'Plumbing'      },
-      { to: '/structural', icon: Building2, label: 'Structural'    },
-      { to: '/solar',      icon: Sun,        label: 'Solar PV'      },
+      { to: '/electrical', icon: Zap,          label: 'Electrical'    },
+      { to: '/calculator', icon: Droplets,     label: 'Plumbing'      },
+      { to: '/structural', icon: Building2,    label: 'Structural'    },
+      { to: '/solar',      icon: Sun,          label: 'Solar PV'      },
+      { to: '/civil',      icon: Construction, label: 'Civil'         },
     ],
   },
   {
-    label: 'Estimation',
+    label: 'Bidding',
     items: [
-      { to: '/materials', icon: Database,   label: 'Material DB'   },
-      { to: '/estimator', icon: Calculator, label: 'Cost Estimator'},
-      { to: '/reports',   icon: FileText,   label: 'Reports'       },
-      { to: '/admin',     icon: Settings,   label: 'Admin Panel'   },
+      { to: '/conceptual',     icon: Lightbulb,   label: 'Conceptual'    },
+      { to: '/estimator',      icon: Calculator,  label: 'Cost Estimator'},
+      { to: '/subcontractors', icon: Truck,       label: 'Subcontractors'},
+      { to: '/overhead',       icon: Layers,      label: 'Site Overhead' },
+      { to: '/bid',            icon: DollarSign,  label: 'Bid Summary'   },
+    ],
+  },
+  {
+    label: 'Reports & Data',
+    items: [
+      { to: '/materials', icon: Database,  label: 'Material DB'   },
+      { to: '/reports',   icon: FileText,  label: 'Reports'       },
+      { to: '/admin',     icon: Settings,  label: 'Admin Panel'   },
     ],
   },
 ]

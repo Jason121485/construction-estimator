@@ -7,9 +7,28 @@ import { Plus, Trash2, X, Calculator } from 'lucide-react'
 
 const COLORS = ['#0f3460','#e94560','#16213e','#1a4a80','#c23351','#0d7377','#2b2d42']
 
+const CSI_DIVISIONS = [
+  'Division 01 - General Requirements',
+  'Division 02 - Site Work & Demolition',
+  'Division 03 - Concrete',
+  'Division 04 - Masonry',
+  'Division 05 - Metals / Structural Steel',
+  'Division 06 - Carpentry & Wood',
+  'Division 07 - Thermal & Moisture Protection',
+  'Division 08 - Doors, Windows & Glazing',
+  'Division 09 - Finishes',
+  'Division 10 - Specialties',
+  'Division 11 - Equipment',
+  'Division 12 - Furnishings',
+  'Division 13 - Special Construction',
+  'Division 14 - Conveying Systems',
+  'Division 15 - Mechanical & Plumbing',
+  'Division 16 - Electrical',
+]
+
 function AddItemModal({ projectId, materials, onSave, onClose }) {
   const [form, setForm] = useState({
-    item_name: '', category: 'Supply Pipe', size: '',
+    item_name: '', category: 'Supply Pipe', size: '', division: '',
     unit: 'pcs', quantity: 1, unit_price: 0, notes: '',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -55,6 +74,14 @@ function AddItemModal({ projectId, materials, onSave, onClose }) {
               <label className="label">Category</label>
               <input className="input" value={form.category}
                 onChange={e => set('category', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">CSI Division</label>
+              <select className="input" value={form.division || ''}
+                onChange={e => set('division', e.target.value)}>
+                <option value="">— None —</option>
+                {CSI_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
             <div>
               <label className="label">Size</label>
@@ -212,6 +239,7 @@ export default function CostEstimator() {
                   <thead>
                     <tr className="table-head">
                       <th className="text-left px-3 py-2">Item</th>
+                      <th className="px-3 py-2">Division</th>
                       <th className="px-3 py-2">Cat</th>
                       <th className="px-3 py-2">Size</th>
                       <th className="px-3 py-2">Unit</th>
@@ -224,13 +252,16 @@ export default function CostEstimator() {
                   <tbody>
                     {items.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center py-10 text-gray-500">
-                          No items yet. Run the Plumbing Calculator to auto-generate, or add manually.
+                        <td colSpan={9} className="text-center py-10 text-gray-500">
+                          No items yet. Run a calculator to auto-generate, or add manually.
                         </td>
                       </tr>
                     ) : items.map(item => (
                       <tr key={item.id} className="table-row group">
                         <td className="px-3 py-2 font-medium text-white">{item.item_name}</td>
+                        <td className="px-3 py-2 text-gray-500 text-xs max-w-[120px] truncate" title={item.division || ''}>
+                          {item.division ? item.division.replace(/Division \d+ - /, '') : '—'}
+                        </td>
                         <td className="px-3 py-2 text-gray-500">{item.category}</td>
                         <td className="px-3 py-2 text-center text-gray-400">{item.size || '—'}</td>
                         <td className="px-3 py-2 text-center text-gray-400">{item.unit || '—'}</td>
@@ -253,7 +284,7 @@ export default function CostEstimator() {
                   {items.length > 0 && summary && (
                     <tfoot>
                       <tr className="bg-navy/40 font-semibold text-sm">
-                        <td colSpan={6} className="px-3 py-3 text-right text-gray-300">GRAND TOTAL</td>
+                        <td colSpan={7} className="px-3 py-3 text-right text-gray-300">GRAND TOTAL</td>
                         <td className="px-3 py-3 text-right text-accent text-base">
                           ₱{(summary.grand_total || 0).toLocaleString()}
                         </td>

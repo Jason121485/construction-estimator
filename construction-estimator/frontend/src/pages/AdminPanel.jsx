@@ -1,6 +1,82 @@
 import { useEffect, useState } from 'react'
-import { getMaterials, getCategories, updateMaterial, createMaterial, deleteMaterial, updatePrice } from '../utils/api'
-import { Settings, Plus, Pencil, Trash2, X, Check, RefreshCw, ShieldAlert } from 'lucide-react'
+import { getMaterials, getCategories, updateMaterial, createMaterial, deleteMaterial, updatePrice, getRevenueStats } from '../utils/api'
+import { Settings, Plus, Pencil, Trash2, X, Check, RefreshCw, ShieldAlert, DollarSign, Users, TrendingUp, AlertCircle, XCircle } from 'lucide-react'
+
+function RevenueDashboard() {
+  const [stats, setStats]   = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]   = useState('')
+
+  const load = () => {
+    setLoading(true)
+    setError('')
+    getRevenueStats()
+      .then((r) => setStats(r.data))
+      .catch(() => setError('Failed to load revenue data. Make sure STRIPE_SECRET_KEY is configured.'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [])
+
+  const StatCard = ({ label, value, sub, icon: Icon, color = 'text-white' }) => (
+    <div className="card flex items-start gap-3">
+      <div className="p-2 bg-white/5 rounded">
+        <Icon size={18} className={color} />
+      </div>
+      <div>
+        <p className="text-xs text-gray-500 uppercase tracking-wider">{label}</p>
+        <p className={`text-2xl font-bold mt-0.5 ${color}`}>{value}</p>
+        {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  )
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-gray-500 gap-2">
+        <RefreshCw size={16} className="animate-spin" /> Loading revenue data…
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="card border border-red-800/30 text-red-400 text-sm flex items-center gap-2">
+        <AlertCircle size={16} /> {error}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-300">Stripe Revenue Overview</h3>
+        <button onClick={load} className="btn-ghost flex items-center gap-1.5 text-xs">
+          <RefreshCw size={12} /> Refresh
+        </button>
+      </div>
+
+      {/* Stripe stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <StatCard label="MRR" value={`$${(stats.mrr || 0).toFixed(2)}`} sub="Monthly Recurring" icon={DollarSign} color="text-emerald-400" />
+        <StatCard label="Active" value={stats.active_subscriptions ?? 0} sub="Paid subscribers" icon={TrendingUp} color="text-blue-400" />
+        <StatCard label="Trialing" value={stats.trialing_subscriptions ?? 0} sub="In Stripe trial" icon={Users} color="text-yellow-400" />
+        <StatCard label="Past Due" value={stats.past_due_subscriptions ?? 0} sub="Payment failed" icon={AlertCircle} color="text-red-400" />
+        <StatCard label="Canceled" value={stats.canceled_subscriptions ?? 0} sub="Churned" icon={XCircle} color="text-gray-400" />
+      </div>
+
+      {/* DB user stats */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard label="Total Users" value={stats.total_users ?? 0} sub="All registered accounts" icon={Users} />
+        <StatCard label="Free Trial Users" value={stats.trial_users ?? 0} sub="Using app trial (not yet subscribed)" icon={Users} color="text-yellow-400" />
+      </div>
+
+      <p className="text-xs text-gray-600">
+        Stripe stats reflect live subscription data. User counts are from the local database.
+      </p>
+    </div>
+  )
+}
 
 function EditRow({ material, categories, onSave, onCancel }) {
   const [form, setForm] = useState({ ...material })
@@ -93,6 +169,7 @@ function BulkPriceUpdate({ materials, categories, onDone }) {
 }
 
 export default function AdminPanel() {
+  const [tab, setTab]               = useState('materials')
   const [materials, setMaterials]   = useState([])
   const [categories, setCategories] = useState([])
   const [editId, setEditId]         = useState(null)
@@ -142,7 +219,7 @@ export default function AdminPanel() {
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Settings size={22} /> Admin Panel
           </h1>
-          <p className="text-sm text-gray-400 mt-1">Manage materials, prices, categories, and suppliers</p>
+          <p className="text-sm text-gray-400 mt-1">Manage materials, prices, and view revenue</p>
         </div>
         <div className="flex gap-2">
           <button onClick={load} className="btn-ghost flex items-center gap-1.5">
@@ -153,6 +230,27 @@ export default function AdminPanel() {
           </button>
         </div>
       </div>
+
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-white/10 pb-0">
+        {['materials', 'revenue'].map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 text-sm font-medium rounded-t transition-colors ${
+              tab === t
+                ? 'bg-surface text-white border border-b-0 border-white/10'
+                : 'text-gray-500 hover:text-white'
+            }`}
+          >
+            {t === 'materials' ? 'Materials' : 'Revenue'}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'revenue' && <RevenueDashboard />}
+
+      {tab === 'materials' && <>
 
       {/* Bulk price update */}
       <BulkPriceUpdate materials={materials} categories={categories} onDone={load} />
@@ -264,6 +362,8 @@ export default function AdminPanel() {
       <p className="text-xs text-gray-600">
         Price reference: TheProjectEstimate.com · All prices in Philippine Peso (₱)
       </p>
+
+      </>}
     </div>
   )
 }

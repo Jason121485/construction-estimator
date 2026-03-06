@@ -2,8 +2,18 @@ import { useEffect, useState } from 'react'
 import { getProjects, createProject, updateProject, deleteProject, getProjectSummary } from '../utils/api'
 import { Plus, Pencil, Trash2, Building2, X } from 'lucide-react'
 
-const BUILDING_TYPES = ['Residential', 'Commercial', 'Institutional', 'Industrial', 'Mixed-Use']
-const WATER_SOURCES  = ['Municipal', 'Deepwell', 'Rainwater Harvesting', 'Combined']
+const BUILDING_TYPES   = ['Residential', 'Commercial', 'Institutional', 'Industrial', 'Infrastructure', 'Mixed-Use']
+const WATER_SOURCES    = ['Municipal', 'Deepwell', 'Rainwater Harvesting', 'Combined']
+const CONTRACT_TYPES   = [
+  { value: 'lump_sum',     label: 'Lump Sum' },
+  { value: 'unit_price',   label: 'Unit Price' },
+  { value: 'cost_plus',    label: 'Cost Plus' },
+]
+const DELIVERY_METHODS = [
+  { value: 'design_bid_build', label: 'Design-Bid-Build' },
+  { value: 'design_build',     label: 'Design-Build' },
+  { value: 'cm_at_risk',       label: 'CM at Risk' },
+]
 
 function Modal({ title, onClose, children }) {
   return (
@@ -21,8 +31,10 @@ function Modal({ title, onClose, children }) {
 
 function ProjectForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState(initial || {
-    project_name: '', location: '', building_type: 'Residential',
-    floors: 1, building_area: 0, water_source: 'Municipal', tank_capacity: 1000,
+    project_name: '', client_name: '', location: '', project_description: '',
+    building_type: 'Residential', contract_type: 'lump_sum', delivery_method: 'design_bid_build',
+    estimated_duration: '', floors: 1, building_area: 0,
+    water_source: 'Municipal', tank_capacity: 1000,
     distance_from_manila: 0, transport_cost_per_km: 50, num_workers: 5,
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -37,9 +49,20 @@ function ProjectForm({ initial, onSave, onCancel }) {
             onChange={e => set('project_name', e.target.value)} placeholder="e.g. SM Mall Phase 2" />
         </div>
         <div>
+          <label className="label">Client / Owner Name</label>
+          <input className="input" value={form.client_name || ''}
+            onChange={e => set('client_name', e.target.value)} placeholder="Company or person name" />
+        </div>
+        <div>
           <label className="label">Location</label>
           <input className="input" value={form.location || ''}
             onChange={e => set('location', e.target.value)} placeholder="City / Province" />
+        </div>
+        <div className="col-span-2">
+          <label className="label">Project Description</label>
+          <textarea className="input" rows={2} value={form.project_description || ''}
+            onChange={e => set('project_description', e.target.value)}
+            placeholder="Brief scope description…" />
         </div>
         <div>
           <label className="label">Building Type</label>
@@ -47,6 +70,26 @@ function ProjectForm({ initial, onSave, onCancel }) {
             onChange={e => set('building_type', e.target.value)}>
             {BUILDING_TYPES.map(t => <option key={t}>{t}</option>)}
           </select>
+        </div>
+        <div>
+          <label className="label">Contract Type</label>
+          <select className="input" value={form.contract_type || 'lump_sum'}
+            onChange={e => set('contract_type', e.target.value)}>
+            {CONTRACT_TYPES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Delivery Method</label>
+          <select className="input" value={form.delivery_method || 'design_bid_build'}
+            onChange={e => set('delivery_method', e.target.value)}>
+            {DELIVERY_METHODS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Est. Duration (months)</label>
+          <input className="input" type="number" min="1" step="1" value={form.estimated_duration || ''}
+            onChange={e => set('estimated_duration', parseInt(e.target.value) || null)}
+            placeholder="e.g. 12" />
         </div>
         <div>
           <label className="label">Number of Floors</label>
@@ -219,8 +262,11 @@ export default function Projects() {
                 )}
 
                 <div className="mt-3 pt-3 border-t border-white/5">
-                  <p className="text-xs text-gray-600">
-                    Water source: {p.water_source || '—'}
+                  {p.client_name && (
+                    <p className="text-xs text-gray-400 font-medium">Client: {p.client_name}</p>
+                  )}
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    {p.contract_type?.replace('_', ' ') || 'Lump Sum'} · Water: {p.water_source || '—'}
                   </p>
                   <p className="text-xs text-gray-600 mt-0.5">
                     Created: {new Date(p.created_at).toLocaleDateString()}

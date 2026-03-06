@@ -7,7 +7,8 @@ from database import get_db
 from models import Project, Estimate, SolarCalculation, User
 from auth_utils import require_active_subscription, get_project_or_404
 from solar_engine import (
-    perform_solar_analysis, PHILIPPINE_PSH, PANEL_WATTAGES,
+    perform_solar_analysis, calc_load_analysis,
+    PHILIPPINE_PSH, PANEL_WATTAGES,
     INVERTER_SIZES_KW, BATTERY_DOD, SYSTEM_TYPES,
 )
 
@@ -35,13 +36,19 @@ class SolarAnalysisRequest(BaseModel):
 
 class SaveSolarRequest(BaseModel):
     project_id: int
-    monthly_kwh: float
+    monthly_kwh: float = 0
     location: str = "General (Luzon)"
     panel_wattage_wp: float = 400
     battery_type: str = "Lithium (LFP)"
     backup_hours: float = 4.0
     system_type: str = "grid_tied"
     roof_area_m2: Optional[float] = None
+    appliances: Optional[list] = None
+    daily_load_wh: Optional[float] = None
+
+
+class LoadAnalysisRequest(BaseModel):
+    appliances: list   # [{name, qty, watts, hours_per_day, is_motor_load}]
 
 
 # ── Routes ────────────────────────────────────────────────────────────────
@@ -55,6 +62,12 @@ def get_constants():
         "battery_types":   list(BATTERY_DOD.keys()),
         "system_types":    SYSTEM_TYPES,
     }
+
+
+@router.post("/load-analysis")
+def load_analysis(req: LoadAnalysisRequest):
+    """Compute daily load and surge load from appliance list."""
+    return calc_load_analysis(req.appliances)
 
 
 @router.post("/analyze")

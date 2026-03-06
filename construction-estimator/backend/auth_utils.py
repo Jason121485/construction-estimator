@@ -24,7 +24,7 @@ ACCESS_TOKEN_EXPIRE  = timedelta(hours=24)
 # ── Plan Limits ───────────────────────────────────────────────────────────────
 
 PLAN_PROJECT_LIMITS = {
-    "starter":      5,
+    "starter":      10,
     "professional": 50,
     "enterprise":   None,   # None = unlimited
 }
@@ -96,9 +96,14 @@ def get_current_user(
 def require_active_subscription(user=Depends(get_current_user)):
     """
     Returns the user if subscription is valid.
+    Stripe-verified subscribers (trialing/active) always pass through.
     Raises 402 if the trial period has expired or the subscription is not active.
     """
     now = datetime.utcnow()
+
+    # Stripe-verified subscribers bypass local trial/expiry checks
+    if user.stripe_subscription_status in ("trialing", "active"):
+        return user
 
     if user.subscription_status == "trial":
         if user.trial_end and now > user.trial_end:
@@ -110,7 +115,7 @@ def require_active_subscription(user=Depends(get_current_user)):
                 },
             )
 
-    if user.subscription_status == "expired":
+    if user.subscription_status in ("expired", "past_due"):
         raise HTTPException(
             status_code=402,
             detail={

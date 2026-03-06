@@ -15,6 +15,12 @@ import MaterialDatabase from './pages/MaterialDatabase'
 import CostEstimator from './pages/CostEstimator'
 import Reports from './pages/Reports'
 import AdminPanel from './pages/AdminPanel'
+import CivilCalculator from './pages/CivilCalculator'
+import Subcontractors from './pages/Subcontractors'
+import SiteOverhead from './pages/SiteOverhead'
+import BidSummary from './pages/BidSummary'
+import ConceptualEstimate from './pages/ConceptualEstimate'
+import Billing from './pages/Billing'
 
 export default function App() {
   return (
@@ -42,10 +48,16 @@ export default function App() {
             <Route path="electrical"  element={<ElectricalCalculator />} />
             <Route path="structural"  element={<StructuralCalculator />} />
             <Route path="solar"       element={<SolarCalculator />} />
-            <Route path="materials"   element={<MaterialDatabase />} />
-            <Route path="estimator"   element={<CostEstimator />} />
-            <Route path="reports"     element={<Reports />} />
-            <Route path="admin"       element={<AdminPanel />} />
+            <Route path="materials"      element={<MaterialDatabase />} />
+            <Route path="estimator"      element={<CostEstimator />} />
+            <Route path="reports"        element={<Reports />} />
+            <Route path="admin"          element={<AdminPanel />} />
+            <Route path="civil"          element={<CivilCalculator />} />
+            <Route path="subcontractors" element={<Subcontractors />} />
+            <Route path="overhead"       element={<SiteOverhead />} />
+            <Route path="bid"            element={<BidSummary />} />
+            <Route path="conceptual"     element={<ConceptualEstimate />} />
+            <Route path="billing"        element={<Billing />} />
           </Route>
 
           {/* Catch-all */}

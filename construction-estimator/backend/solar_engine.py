@@ -80,11 +80,110 @@ def get_psh(location: str) -> float:
     return PHILIPPINE_PSH.get(location, DEFAULT_PSH)
 
 
+# Standard charge controller sizes (A)
+CONTROLLER_SIZES_A = [20, 30, 40, 60, 80, 100, 120, 150]
+
+# Standard breaker sizes (A)
+BREAKER_SIZES_A = [10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125]
+
+
+def _next_standard(value: float, standards: list) -> int:
+    """Return the next standard size >= value."""
+    for s in standards:
+        if s >= value:
+            return s
+    return standards[-1]
+
+
+def calc_load_analysis(appliances: list) -> dict:
+    """
+    Compute load analysis from appliance list.
+    Each appliance: {name, qty, watts, hours_per_day, is_motor_load}
+    Surge factors: motor loads × 3.0, others × 1.3
+    Returns: {total_watts, daily_wh, surge_watts, appliances}
+    """
+    total_watts = 0.0
+    daily_wh = 0.0
+    surge_watts = 0.0
+    items = []
+
+    for a in appliances:
+        qty   = float(a.get("qty", 1))
+        watts = float(a.get("watts", 0))
+        hours = float(a.get("hours_per_day", 0))
+        motor = bool(a.get("is_motor_load", False))
+
+        row_watts   = qty * watts
+        row_daily   = row_watts * hours
+        row_surge   = row_watts * (3.0 if motor else 1.3)
+
+        total_watts += row_watts
+        daily_wh    += row_daily
+        surge_watts += row_surge
+
+        items.append({**a, "row_watts": round(row_watts), "row_daily_wh": round(row_daily)})
+
+    return {
+        "total_watts":  round(total_watts),
+        "daily_wh":     round(daily_wh),
+        "surge_watts":  round(surge_watts),
+        "appliances":   items,
+    }
+
+
+def calc_charge_controller(pv_power_w: float, system_voltage: int = 48) -> dict:
+    """
+    Size an MPPT charge controller.
+    raw_amps = pv_power_w / system_voltage × 1.25 (safety factor)
+    """
+    raw_amps = (pv_power_w / system_voltage) * 1.25
+    selected = _next_standard(raw_amps, CONTROLLER_SIZES_A)
+    return {
+        "raw_amps":      round(raw_amps, 1),
+        "selected_amps": selected,
+        "type":          "MPPT",
+        "voltage":       system_voltage,
+        "model_hint":    f"MPPT {system_voltage}V {selected}A",
+    }
+
+
+def calc_protection_devices(
+    pv_current_a: float,
+    ac_current_a: float,
+    pv_strings: int,
+    system_voltage: int = 48,
+) -> dict:
+    """
+    Size DC/AC protection devices.
+    DC string breaker = Isc × 1.25, rounded up to next standard breaker.
+    AC main breaker  = AC current × 1.25, rounded up.
+    """
+    dc_breaker_raw = pv_current_a * 1.25
+    dc_breaker_a   = _next_standard(dc_breaker_raw, BREAKER_SIZES_A)
+
+    ac_breaker_raw = ac_current_a * 1.25
+    ac_breaker_a   = _next_standard(ac_breaker_raw, BREAKER_SIZES_A)
+
+    return {
+        "dc_string_breaker_a": dc_breaker_a,
+        "string_breakers_qty": pv_strings,
+        "ac_breaker_a":        ac_breaker_a,
+        "spd_dc":              1,
+        "spd_ac":              1,
+        "disconnect_dc":       1,
+        "disconnect_ac":       1,
+        "notes": (
+            f"DC: {pv_strings}× {dc_breaker_a}A string breakers; "
+            f"AC: 1× {ac_breaker_a}A main breaker"
+        ),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Solar System Sizing
 # ---------------------------------------------------------------------------
 def perform_solar_analysis(
-    monthly_kwh: float,
+    monthly_kwh: float = 0,
     location: str = "General (Luzon)",
     panel_wattage_wp: float = 400,
     battery_type: str = "Lithium (LFP)",
@@ -92,6 +191,8 @@ def perform_solar_analysis(
     system_type: str = "grid_tied",
     roof_area_m2: Optional[float] = None,
     power_factor: float = 0.90,
+    appliances: Optional[list] = None,
+    daily_load_wh: Optional[float] = None,
 ) -> Dict:
     """
     Full solar PV system sizing.
@@ -109,9 +210,22 @@ def perform_solar_analysis(
     Returns:
         Complete sizing results with material quantities.
     """
-    # Energy analysis
-    daily_kwh    = monthly_kwh / 30
-    psh          = get_psh(location)
+    # --- Load Analysis (if appliances provided) ---
+    load_result = None
+    if appliances:
+        load_result   = calc_load_analysis(appliances)
+        daily_kwh     = load_result["daily_wh"] / 1000
+        monthly_kwh   = daily_kwh * 30
+        surge_w       = load_result["surge_watts"]
+    elif daily_load_wh is not None:
+        daily_kwh   = daily_load_wh / 1000
+        monthly_kwh = daily_kwh * 30
+        surge_w     = 0.0
+    else:
+        daily_kwh = monthly_kwh / 30
+        surge_w   = 0.0
+
+    psh = get_psh(location)
 
     # Required PV capacity
     system_kw_required = daily_kwh / (psh * PERFORMANCE_RATIO)
@@ -128,8 +242,10 @@ def perform_solar_analysis(
     num_panels   = num_strings * panels_per_string
     actual_kw    = num_panels * panel_kw
 
-    # Inverter sizing
-    inverter_kw  = select_inverter_kw(actual_kw)
+    # Inverter sizing — must handle both PV output and surge loads
+    inv_by_pv    = select_inverter_kw(actual_kw)
+    inv_by_surge = select_inverter_kw(surge_w / 1000, buffer=1.0) if surge_w > 0 else 0
+    inverter_kw  = max(inv_by_pv, inv_by_surge)
 
     # Energy production estimate
     daily_production_kwh  = actual_kw * psh * PERFORMANCE_RATIO
@@ -177,6 +293,17 @@ def perform_solar_analysis(
     # CO₂ offset (0.65 kg CO₂ per kWh — Philippine grid factor)
     annual_co2_kg   = annual_production_kwh * 0.65
 
+    # Charge controller (for off-grid/hybrid or as reference for grid-tied)
+    system_voltage = 48  # standard 48V DC bus
+    pv_power_w     = actual_kw * 1000
+    charge_ctrl    = calc_charge_controller(pv_power_w, system_voltage)
+
+    # Electrical protection
+    # Isc estimate: panel_wp / Vmp_typical (≈38V for mono panels)
+    isc_a     = panel_wattage_wp / 38.0
+    ac_amps   = (inverter_kw * 1000) / 220.0   # single-phase 220V Philippines
+    protection = calc_protection_devices(isc_a, ac_amps, num_strings, system_voltage)
+
     # Material quantities
     material_quantities = _solar_materials(
         num_panels, panel_wattage_wp, inverter_kw, battery_result, num_strings, actual_kw
@@ -210,7 +337,10 @@ def perform_solar_analysis(
             "type":          "String Inverter" if inverter_kw <= 20 else "Central Inverter",
             "mppt_inputs":   num_strings,
         },
-        "battery":  battery_result,
+        "battery":          battery_result,
+        "charge_controller": charge_ctrl,
+        "protection":        protection,
+        "load_analysis":     load_result,
         "financials": {
             "panel_cost":        round(panel_cost_php),
             "inverter_cost":     round(inverter_cost),

@@ -1,69 +1,73 @@
-import { Link } from 'react-router-dom'
-import { Check, HardHat } from 'lucide-react'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Check, HardHat, Loader2 } from 'lucide-react'
+import { createCheckoutSession } from '../utils/api'
+import { useAuth } from '../contexts/AuthContext'
+import { parseApiError } from '../utils/parseError'
 
 const PLANS = [
   {
-    name:     'Starter',
-    price:    '$19',
-    period:   '/month',
-    tagline:  'For small residential projects',
-    accent:   false,
+    key:     'starter',
+    name:    'Starter',
+    price:   '$9',
+    period:  '/month',
+    tagline: 'For small residential projects',
+    accent:  false,
     features: [
-      'Up to 5 projects',
+      'Up to 10 projects',
       'Residential projects only',
-      'Electrical calculator',
-      'Plumbing calculator',
+      'All engineering calculators',
       'Material database',
       'PDF BOQ export',
+      '30-day free trial',
     ],
     notIncluded: [
       'Commercial / Industrial',
       'Team collaboration',
-      'API access',
     ],
   },
   {
-    name:     'Professional',
-    price:    '$49',
-    period:   '/month',
-    tagline:  'For growing engineering firms',
-    accent:   true,   // highlighted plan
+    key:     'professional',
+    name:    'Professional',
+    price:   '$29',
+    period:  '/month',
+    tagline: 'For growing engineering firms',
+    accent:  true,
     features: [
       'Up to 50 projects',
       'Residential + Commercial',
-      'All 4 engineering modules',
-      'Structural & Solar calculators',
-      'Advanced BOQ & reports',
-      'PDF + data export',
+      'All engineering modules',
+      'Full BOQ generation',
+      'PDF + Excel export',
+      'Project estimate reports',
+      '30-day free trial',
     ],
     notIncluded: [
-      'Industrial projects',
-      'Multi-user teams',
-      'API access',
+      'Team collaboration',
     ],
   },
   {
-    name:     'Enterprise',
-    price:    '$99',
-    period:   '/month',
-    tagline:  'For large firms & contractors',
-    accent:   false,
+    key:     'enterprise',
+    name:    'Enterprise',
+    price:   '$99',
+    period:  '/month',
+    tagline: 'For large firms & contractors',
+    accent:  false,
     features: [
       'Unlimited projects',
-      'Residential + Commercial + Industrial',
+      'All building types',
       'All engineering modules',
-      'Multi-user team access',
-      'Role-based permissions',
-      'API access',
-      'Custom reports',
+      'Team accounts',
+      'Unlimited estimations',
       'Priority support',
+      '30-day free trial',
     ],
     notIncluded: [],
   },
 ]
 
 const COMPARISON = [
-  { feature: 'Projects',              starter: '5',         pro: '50',          enterprise: 'Unlimited' },
+  { feature: 'Projects',              starter: '10',        pro: '50',          enterprise: 'Unlimited' },
   { feature: 'Residential projects',  starter: '✓',         pro: '✓',           enterprise: '✓' },
   { feature: 'Commercial projects',   starter: '—',         pro: '✓',           enterprise: '✓' },
   { feature: 'Industrial projects',   starter: '—',         pro: '—',           enterprise: '✓' },
@@ -72,12 +76,35 @@ const COMPARISON = [
   { feature: 'Structural calculator', starter: '✓',         pro: '✓',           enterprise: '✓' },
   { feature: 'Solar PV calculator',   starter: '✓',         pro: '✓',           enterprise: '✓' },
   { feature: 'PDF BOQ export',        starter: '✓',         pro: '✓',           enterprise: '✓' },
+  { feature: 'Excel export',          starter: '—',         pro: '✓',           enterprise: '✓' },
   { feature: 'Team collaboration',    starter: '—',         pro: '—',           enterprise: '✓' },
-  { feature: 'API access',            starter: '—',         pro: '—',           enterprise: '✓' },
   { feature: 'Priority support',      starter: '—',         pro: '—',           enterprise: '✓' },
 ]
 
 export default function Pricing() {
+  const { user, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+  const [loadingPlan, setLoadingPlan] = useState(null)
+  const [error, setError] = useState('')
+
+  const currentPlan = user?.subscription_plan
+
+  const handleUpgrade = async (planKey) => {
+    if (!isAuthenticated) {
+      navigate('/signup')
+      return
+    }
+    setError('')
+    setLoadingPlan(planKey)
+    try {
+      const res = await createCheckoutSession(planKey)
+      window.location.href = res.data.url
+    } catch (err) {
+      setError(parseApiError(err, 'Failed to start checkout. Please try again.'))
+      setLoadingPlan(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-base px-4 py-12">
       {/* Header */}
@@ -88,71 +115,94 @@ export default function Pricing() {
         </Link>
         <h1 className="text-3xl font-bold text-white mt-2">Simple, transparent pricing</h1>
         <p className="text-gray-400 mt-3 max-w-lg mx-auto">
-          Start with a 30-day free trial. No credit card required.
-          Upgrade when you're ready.
+          Start with a 30-day free trial. No charge until after the trial ends.
+          Cancel anytime.
         </p>
+        {error && (
+          <p className="mt-4 text-sm text-red-400 bg-red-900/20 border border-red-800/30 rounded px-4 py-2 inline-block">
+            {error}
+          </p>
+        )}
       </div>
 
       {/* Plan cards */}
       <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-        {PLANS.map((plan) => (
-          <div
-            key={plan.name}
-            className={`relative rounded-lg border flex flex-col ${
-              plan.accent
-                ? 'border-accent bg-surface shadow-lg shadow-accent/10'
-                : 'border-white/10 bg-surface/60'
-            }`}
-          >
-            {plan.accent && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="bg-accent text-white text-xs font-semibold px-3 py-0.5 rounded-full">
-                  Most Popular
-                </span>
+        {PLANS.map((plan) => {
+          const isCurrent  = currentPlan === plan.key && user?.stripe_subscription_id
+          const isLoading  = loadingPlan === plan.key
+
+          return (
+            <div
+              key={plan.key}
+              className={`relative rounded-lg border flex flex-col ${
+                plan.accent
+                  ? 'border-accent bg-surface shadow-lg shadow-accent/10'
+                  : 'border-white/10 bg-surface/60'
+              }`}
+            >
+              {plan.accent && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-accent text-white text-xs font-semibold px-3 py-0.5 rounded-full">
+                    Most Popular
+                  </span>
+                </div>
+              )}
+
+              <div className="p-6 flex-1">
+                <h2 className="text-lg font-bold text-white">{plan.name}</h2>
+                <p className="text-gray-500 text-sm mt-0.5">{plan.tagline}</p>
+
+                <div className="mt-4 mb-6">
+                  <span className="text-4xl font-bold text-white">{plan.price}</span>
+                  <span className="text-gray-500 text-sm">{plan.period}</span>
+                  <p className="text-xs text-emerald-400 mt-1">30-day free trial included</p>
+                </div>
+
+                <ul className="space-y-2.5">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-gray-300">
+                      <Check size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                  {plan.notIncluded.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-gray-600 line-through">
+                      <span className="w-3.5 shrink-0 text-center text-gray-700">—</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )}
 
-            <div className="p-6 flex-1">
-              <h2 className="text-lg font-bold text-white">{plan.name}</h2>
-              <p className="text-gray-500 text-sm mt-0.5">{plan.tagline}</p>
-
-              <div className="mt-4 mb-6">
-                <span className="text-4xl font-bold text-white">{plan.price}</span>
-                <span className="text-gray-500 text-sm">{plan.period}</span>
+              <div className="p-6 pt-0">
+                {isCurrent ? (
+                  <div className="w-full py-2.5 rounded text-sm font-medium text-center bg-white/5 text-gray-400 border border-white/10">
+                    Current Plan
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleUpgrade(plan.key)}
+                    disabled={isLoading}
+                    className={`w-full py-2.5 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                      plan.accent
+                        ? 'bg-accent hover:bg-accent-dark text-white'
+                        : 'border border-white/20 text-gray-300 hover:bg-white/5'
+                    } disabled:opacity-60 disabled:cursor-not-allowed`}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Redirecting…
+                      </>
+                    ) : (
+                      `Start free trial — ${plan.name}`
+                    )}
+                  </button>
+                )}
               </div>
-
-              <ul className="space-y-2.5">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-gray-300">
-                    <Check size={14} className="text-emerald-400 mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-                {plan.notIncluded.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-gray-600 line-through">
-                    <span className="w-3.5 shrink-0 text-center text-gray-700">—</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
             </div>
-
-            <div className="p-6 pt-0">
-              <button
-                disabled
-                title="Stripe billing coming soon"
-                className={`w-full py-2.5 rounded text-sm font-medium transition-colors cursor-not-allowed opacity-60 ${
-                  plan.accent
-                    ? 'bg-accent text-white'
-                    : 'border border-white/20 text-gray-300'
-                }`}
-              >
-                Upgrade to {plan.name}
-                <span className="block text-xs font-normal opacity-70 mt-0.5">Stripe billing coming soon</span>
-              </button>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Comparison table */}

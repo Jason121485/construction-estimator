@@ -255,6 +255,94 @@ SEED_MATERIALS = [
     {"name": "Solar Installation Labor", "category": "Labor", "size": "—", "unit": "day", "price": 1800},
 
     # ────────────────────────────────────────────────────────────────────────
+    # SOLAR — BRANDED PRODUCTS (EPC Grade)
+    # ────────────────────────────────────────────────────────────────────────
+    # Solar Panels — JA Solar
+    {"name": "JA Solar JAM54S30 400W", "category": "Solar Panel", "size": "400Wp Mono", "unit": "unit", "price": 14000},
+    {"name": "JA Solar JAM54S30 450W", "category": "Solar Panel", "size": "450Wp Mono", "unit": "unit", "price": 16000},
+    # Solar Panels — Jinko Solar
+    {"name": "Jinko Tiger Neo 400W",   "category": "Solar Panel", "size": "400Wp Mono", "unit": "unit", "price": 13500},
+    {"name": "Jinko Tiger Neo 450W",   "category": "Solar Panel", "size": "450Wp Mono", "unit": "unit", "price": 15500},
+    {"name": "Jinko Tiger Neo 550W",   "category": "Solar Panel", "size": "550Wp Mono", "unit": "unit", "price": 19000},
+    # Solar Panels — Longi Solar
+    {"name": "Longi Hi-MO 6 405W",     "category": "Solar Panel", "size": "405Wp Mono", "unit": "unit", "price": 13000},
+    {"name": "Longi Hi-MO 6 440W",     "category": "Solar Panel", "size": "440Wp Mono", "unit": "unit", "price": 15000},
+    # Solar Panels — Trina Solar
+    {"name": "Trina Vertex S 405W",    "category": "Solar Panel", "size": "405Wp Mono", "unit": "unit", "price": 12800},
+    {"name": "Trina Vertex S 435W",    "category": "Solar Panel", "size": "435Wp Mono", "unit": "unit", "price": 14800},
+    # Solar Panels — Canadian Solar
+    {"name": "Canadian Solar HiKu 400W", "category": "Solar Panel", "size": "400Wp Mono", "unit": "unit", "price": 12500},
+    {"name": "Canadian Solar HiKu 455W", "category": "Solar Panel", "size": "455Wp Mono", "unit": "unit", "price": 15200},
+
+    # Inverters — Solis (On-Grid)
+    {"name": "Solis S6 Mini 3kW",      "category": "Inverter", "size": "3kW On-Grid",  "unit": "unit", "price": 18000},
+    {"name": "Solis S6 Mini 5kW",      "category": "Inverter", "size": "5kW On-Grid",  "unit": "unit", "price": 28000},
+    {"name": "Solis S6 8kW",           "category": "Inverter", "size": "8kW On-Grid",  "unit": "unit", "price": 42000},
+    {"name": "Solis S6 10kW",          "category": "Inverter", "size": "10kW On-Grid", "unit": "unit", "price": 52000},
+    # Inverters — Growatt (On-Grid)
+    {"name": "Growatt MIN 3000TL-X",   "category": "Inverter", "size": "3kW On-Grid",  "unit": "unit", "price": 16000},
+    {"name": "Growatt MIN 5000TL-X",   "category": "Inverter", "size": "5kW On-Grid",  "unit": "unit", "price": 25000},
+    # Inverters — Deye (Hybrid)
+    {"name": "Deye SUN-5K-SG04LP1",   "category": "Inverter", "size": "5kW Hybrid",   "unit": "unit", "price": 55000},
+    {"name": "Deye SUN-8K-SG05LP1",   "category": "Inverter", "size": "8kW Hybrid",   "unit": "unit", "price": 80000},
+    {"name": "Deye SUN-10K-SG05LP1",  "category": "Inverter", "size": "10kW Hybrid",  "unit": "unit", "price": 95000},
+    # Inverters — Growatt (Hybrid)
+    {"name": "Growatt SPH 5000TL BL-UP", "category": "Inverter", "size": "5kW Hybrid", "unit": "unit", "price": 50000},
+    {"name": "Growatt SPH 10000TL BL-UP","category": "Inverter", "size": "10kW Hybrid","unit": "unit", "price": 90000},
+    # Inverters — Huawei
+    {"name": "Huawei SUN2000-5KTL-L1", "category": "Inverter", "size": "5kW On-Grid",  "unit": "unit", "price": 58000},
+    {"name": "Huawei SUN2000-10KTL-M1","category": "Inverter", "size": "10kW On-Grid", "unit": "unit", "price": 105000},
+
+    # Batteries — Pylontech (LiFePO4)
+    {"name": "Pylontech US3000C",      "category": "Battery", "size": "3.5kWh LiFePO4", "unit": "unit", "price": 45000},
+    {"name": "Pylontech US5000",       "category": "Battery", "size": "4.8kWh LiFePO4", "unit": "unit", "price": 62000},
+    # Batteries — Growatt
+    {"name": "Growatt ARK 2.56H-A1",  "category": "Battery", "size": "2.56kWh LiFePO4","unit": "unit", "price": 35000},
+    # Batteries — BYD
+    {"name": "BYD Battery-Box Premium HVS 5.1", "category": "Battery", "size": "5.1kWh LiFePO4", "unit": "unit", "price": 70000},
+    # Batteries — Dyness
+    {"name": "Dyness A48100",          "category": "Battery", "size": "4.8kWh LiFePO4", "unit": "unit", "price": 58000},
+    # Batteries — Lead Acid
+    {"name": "Lead Acid Battery 12V 100Ah", "category": "Battery", "size": "12V 100Ah", "unit": "unit", "price": 4500},
+    {"name": "Lead Acid Battery 12V 200Ah", "category": "Battery", "size": "12V 200Ah", "unit": "unit", "price": 8500},
+    # Batteries — AGM
+    {"name": "AGM Battery 12V 100Ah",  "category": "Battery", "size": "12V 100Ah AGM", "unit": "unit", "price": 6000},
+    {"name": "AGM Battery 12V 200Ah",  "category": "Battery", "size": "12V 200Ah AGM", "unit": "unit", "price": 11000},
+
+    # Charge Controllers — MPPT
+    {"name": "MPPT Charge Controller 40A 48V",  "category": "Charge Controller", "size": "40A 48V",  "unit": "unit", "price": 8500},
+    {"name": "MPPT Charge Controller 60A 48V",  "category": "Charge Controller", "size": "60A 48V",  "unit": "unit", "price": 12000},
+    {"name": "MPPT Charge Controller 80A 48V",  "category": "Charge Controller", "size": "80A 48V",  "unit": "unit", "price": 16500},
+    {"name": "MPPT Charge Controller 100A 48V", "category": "Charge Controller", "size": "100A 48V", "unit": "unit", "price": 22000},
+
+    # Protection Devices — DC Breakers
+    {"name": "DC Circuit Breaker 10A",  "category": "Protection", "size": "10A DC", "unit": "pcs", "price": 350},
+    {"name": "DC Circuit Breaker 16A",  "category": "Protection", "size": "16A DC", "unit": "pcs", "price": 380},
+    {"name": "DC Circuit Breaker 20A",  "category": "Protection", "size": "20A DC", "unit": "pcs", "price": 420},
+    {"name": "DC Circuit Breaker 32A",  "category": "Protection", "size": "32A DC", "unit": "pcs", "price": 520},
+    {"name": "DC Circuit Breaker 63A",  "category": "Protection", "size": "63A DC", "unit": "pcs", "price": 650},
+    # Protection Devices — AC Breakers
+    {"name": "AC Circuit Breaker 20A",  "category": "Protection", "size": "20A 2P", "unit": "pcs", "price": 280},
+    {"name": "AC Circuit Breaker 32A",  "category": "Protection", "size": "32A 2P", "unit": "pcs", "price": 350},
+    {"name": "AC Circuit Breaker 40A",  "category": "Protection", "size": "40A 2P", "unit": "pcs", "price": 420},
+    {"name": "AC Circuit Breaker 63A",  "category": "Protection", "size": "63A 2P", "unit": "pcs", "price": 520},
+    # Protection — Disconnect & SPD
+    {"name": "DC Disconnect Switch 32A","category": "Protection", "size": "32A DC",    "unit": "unit", "price": 1200},
+    {"name": "DC Surge Protector (SPD)","category": "Protection", "size": "600V DC",   "unit": "unit", "price": 1800},
+    {"name": "AC Surge Protector (SPD)","category": "Protection", "size": "275V AC",   "unit": "unit", "price": 1500},
+    {"name": "Combiner Box 4-String",   "category": "Protection", "size": "4-in/1-out","unit": "unit", "price": 4500},
+    {"name": "Combiner Box 8-String",   "category": "Protection", "size": "8-in/1-out","unit": "unit", "price": 7500},
+
+    # Additional Solar Cables & Accessories
+    {"name": "Solar Cable 6mm²",        "category": "DC Wiring", "size": "6mm² Solar", "unit": "meter", "price": 125},
+    {"name": "MC4 Connector Pair",      "category": "DC Wiring", "size": "30A IP68",   "unit": "pair",  "price": 85},
+    {"name": "MC4 Branch Connector 2-in-1", "category": "DC Wiring", "size": "Y-type", "unit": "pcs",  "price": 120},
+    # Grounding
+    {"name": "Ground Rod Copper-Clad",  "category": "Grounding", "size": '5/8"×8ft',  "unit": "pcs",  "price": 350},
+    {"name": "Grounding Wire 6mm² Green","category": "Grounding", "size": "6mm² GY",  "unit": "meter", "price": 95},
+    {"name": "Ground Bar 12-hole",      "category": "Grounding", "size": "12-hole",    "unit": "pcs",  "price": 450},
+
+    # ────────────────────────────────────────────────────────────────────────
     # MOBILIZATION
     # ────────────────────────────────────────────────────────────────────────
     {"name": "Vehicle Rental (L300/Truck)", "category": "Mobilization", "size": "Per Day", "unit": "day",  "price": 4500},

@@ -41,6 +41,12 @@
   }
 }
 
+/* Dropdown option colors — fix white text on white browser default */
+select option {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
