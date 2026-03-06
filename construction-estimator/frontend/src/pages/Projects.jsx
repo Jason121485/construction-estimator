@@ -3,16 +3,10 @@ import { getProjects, createProject, updateProject, deleteProject, getProjectSum
 import { Plus, Pencil, Trash2, Building2, X } from 'lucide-react'
 
 const BUILDING_TYPES   = ['Residential', 'Commercial', 'Institutional', 'Industrial', 'Infrastructure', 'Mixed-Use']
-const WATER_SOURCES    = ['Municipal', 'Deepwell', 'Rainwater Harvesting', 'Combined']
 const CONTRACT_TYPES   = [
   { value: 'lump_sum',     label: 'Lump Sum' },
   { value: 'unit_price',   label: 'Unit Price' },
   { value: 'cost_plus',    label: 'Cost Plus' },
-]
-const DELIVERY_METHODS = [
-  { value: 'design_bid_build', label: 'Design-Bid-Build' },
-  { value: 'design_build',     label: 'Design-Build' },
-  { value: 'cm_at_risk',       label: 'CM at Risk' },
 ]
 
 function Modal({ title, onClose, children }) {
@@ -36,6 +30,7 @@ function ProjectForm({ initial, onSave, onCancel }) {
     estimated_duration: '', floors: 1, building_area: 0,
     water_source: 'Municipal', tank_capacity: 1000,
     distance_from_manila: 0, transport_cost_per_km: 50, num_workers: 5,
+    misc_expenses: 0, other_expenses: 0,
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -78,41 +73,6 @@ function ProjectForm({ initial, onSave, onCancel }) {
             {CONTRACT_TYPES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </div>
-        <div>
-          <label className="label">Delivery Method</label>
-          <select className="input" value={form.delivery_method || 'design_bid_build'}
-            onChange={e => set('delivery_method', e.target.value)}>
-            {DELIVERY_METHODS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Est. Duration (months)</label>
-          <input className="input" type="number" min="1" step="1" value={form.estimated_duration || ''}
-            onChange={e => set('estimated_duration', parseInt(e.target.value) || null)}
-            placeholder="e.g. 12" />
-        </div>
-        <div>
-          <label className="label">Number of Floors</label>
-          <input className="input" type="number" min="1" max="200" value={form.floors}
-            onChange={e => set('floors', parseInt(e.target.value) || 1)} />
-        </div>
-        <div>
-          <label className="label">Building Area (m²)</label>
-          <input className="input" type="number" min="0" step="10" value={form.building_area || 0}
-            onChange={e => set('building_area', parseFloat(e.target.value) || 0)} />
-        </div>
-        <div>
-          <label className="label">Water Source</label>
-          <select className="input" value={form.water_source}
-            onChange={e => set('water_source', e.target.value)}>
-            {WATER_SOURCES.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Tank Capacity (Liters)</label>
-          <input className="input" type="number" min="0" step="100" value={form.tank_capacity}
-            onChange={e => set('tank_capacity', parseFloat(e.target.value) || 0)} />
-        </div>
       </div>
 
       <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold pt-1">
@@ -133,6 +93,22 @@ function ProjectForm({ initial, onSave, onCancel }) {
           <label className="label">Number of Workers</label>
           <input className="input" type="number" min="1" step="1" value={form.num_workers || 5}
             onChange={e => set('num_workers', parseInt(e.target.value) || 5)} />
+        </div>
+      </div>
+
+      <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold pt-1">
+        Additional Expenses
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label">Miscellaneous Expenses (₱)</label>
+          <input className="input" type="number" min="0" step="100" value={form.misc_expenses || 0}
+            onChange={e => set('misc_expenses', parseFloat(e.target.value) || 0)} />
+        </div>
+        <div>
+          <label className="label">Other Expenses (₱)</label>
+          <input className="input" type="number" min="0" step="100" value={form.other_expenses || 0}
+            onChange={e => set('other_expenses', parseFloat(e.target.value) || 0)} />
         </div>
       </div>
 

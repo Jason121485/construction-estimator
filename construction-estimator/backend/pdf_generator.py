@@ -115,7 +115,7 @@ def generate_boq_pdf(project, estimates) -> BytesIO:
 
     for cat_name, items in categories.items():
         story.append(Paragraph(cat_name.upper(), cat_style))
-        rows = [["#", "Description", "Size", "Unit", "Qty", "Unit Price (₱)", "Total (₱)"]]
+        rows = [["#", "Description", "Size", "Unit", "Qty", "Unit Price (PHP)", "Total (PHP)"]]
         cat_total = 0.0
         for i, e in enumerate(items, 1):
             total = e.total_cost or 0
@@ -131,10 +131,10 @@ def generate_boq_pdf(project, estimates) -> BytesIO:
                 e.size or "—",
                 e.unit or "—",
                 f"{e.quantity:,.0f}" if e.quantity else "0",
-                f"₱{e.unit_price:,.2f}" if e.unit_price else "₱0.00",
-                f"₱{total:,.2f}",
+                f"{e.unit_price:,.2f}" if e.unit_price else "0.00",
+                f"{total:,.2f}",
             ])
-        rows.append(["", f"Subtotal — {cat_name}", "", "", "", "", f"₱{cat_total:,.2f}"])
+        rows.append(["", f"Subtotal — {cat_name}", "", "", "", "", f"PHP {cat_total:,.2f}"])
 
         tbl = Table(rows, colWidths=[0.8*cm, 5.5*cm, 1.8*cm, 1.4*cm, 1.4*cm, 3*cm, 2.8*cm], repeatRows=1)
         style = _table_style_header()
@@ -148,9 +148,9 @@ def generate_boq_pdf(project, estimates) -> BytesIO:
     # ── Grand total ──
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#adb5bd')))
     totals = [
-        ["Total Material Cost", f"₱{material_cost:,.2f}"],
-        ["Total Labor Cost",    f"₱{labor_cost:,.2f}"],
-        ["GRAND TOTAL",         f"₱{grand_total:,.2f}"],
+        ["Total Material Cost", f"PHP {material_cost:,.2f}"],
+        ["Total Labor Cost",    f"PHP {labor_cost:,.2f}"],
+        ["GRAND TOTAL",         f"PHP {grand_total:,.2f}"],
     ]
     tt = Table(totals, colWidths=[13*cm, 5*cm])
     tt.setStyle(TableStyle([
@@ -227,10 +227,10 @@ def generate_engineering_report(project, estimates, fixtures) -> BytesIO:
     grand      = mat_cost + lab_cost
 
     summary = [
-        ["Cost Component",   "Amount (₱)"],
-        ["Material Costs",   f"₱{mat_cost:,.2f}"],
-        ["Labor Costs",      f"₱{lab_cost:,.2f}"],
-        ["GRAND TOTAL",      f"₱{grand:,.2f}"],
+        ["Cost Component",   "Amount (PHP)"],
+        ["Material Costs",   f"PHP {mat_cost:,.2f}"],
+        ["Labor Costs",      f"PHP {lab_cost:,.2f}"],
+        ["GRAND TOTAL",      f"PHP {grand:,.2f}"],
     ]
     st = Table(summary, colWidths=[10*cm, 7*cm])
     st.setStyle(TableStyle([
@@ -257,7 +257,7 @@ def generate_engineering_report(project, estimates, fixtures) -> BytesIO:
 
     for cat_name, items in cats.items():
         story.append(Paragraph(cat_name, h2_style))
-        rows = [["Item", "Size", "Unit", "Qty", "Unit Price", "Total"]]
+        rows = [["Item", "Size", "Unit", "Qty", "Unit Price (PHP)", "Total (PHP)"]]
         cat_total = 0.0
         for e in items:
             t = e.total_cost or 0
@@ -265,10 +265,10 @@ def generate_engineering_report(project, estimates, fixtures) -> BytesIO:
             rows.append([
                 e.item_name, e.size or "—", e.unit or "—",
                 f"{e.quantity:,.0f}" if e.quantity else "0",
-                f"₱{e.unit_price:,.2f}" if e.unit_price else "₱0",
-                f"₱{t:,.2f}",
+                f"{e.unit_price:,.2f}" if e.unit_price else "0.00",
+                f"{t:,.2f}",
             ])
-        rows.append(["Subtotal", "", "", "", "", f"₱{cat_total:,.2f}"])
+        rows.append(["Subtotal", "", "", "", "", f"PHP {cat_total:,.2f}"])
         ct = Table(rows, colWidths=[5.5*cm, 1.8*cm, 1.4*cm, 1.4*cm, 2.8*cm, 2.8*cm], repeatRows=1)
         s2 = _table_style_header(colors.HexColor('#16213e'))
         s2.add('FONTNAME',   (0, -1), (-1, -1), 'Helvetica-Bold')

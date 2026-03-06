@@ -78,6 +78,8 @@ class Project(Base):
     contract_type         = Column(String, default="lump_sum")        # lump_sum | unit_price | cost_plus
     delivery_method       = Column(String, default="design_bid_build") # design_bid_build | design_build | cm_at_risk
     estimated_duration    = Column(Integer, nullable=True)             # months
+    misc_expenses         = Column(Float, default=0.0, nullable=True)  # miscellaneous expenses
+    other_expenses        = Column(Float, default=0.0, nullable=True)  # other expenses
 
     # Owner (nullable for migration safety — existing rows get NULL)
     user_id             = Column(Integer, ForeignKey("users.id"), nullable=True)

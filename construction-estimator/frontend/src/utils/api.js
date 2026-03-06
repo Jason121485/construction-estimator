@@ -105,8 +105,15 @@ export const getEstimateSummary = (pid)            => api.get(`/estimates/${pid}
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 export const getBOQData     = (pid) => api.get(`/reports/${pid}/boq/data`)
-export const downloadBOQ    = (pid) => window.open(`/api/reports/${pid}/boq/pdf`, '_blank')
-export const downloadReport = (pid) => window.open(`/api/reports/${pid}/engineering/pdf`, '_blank')
+const downloadPdf = async (url, filename) => {
+  const res = await api.get(url, { responseType: 'blob' })
+  const href = URL.createObjectURL(res.data)
+  const a = document.createElement('a')
+  a.href = href; a.download = filename; a.click()
+  URL.revokeObjectURL(href)
+}
+export const downloadBOQ    = (pid) => downloadPdf(`/reports/${pid}/boq/pdf`,         `BOQ_project_${pid}.pdf`)
+export const downloadReport = (pid) => downloadPdf(`/reports/${pid}/engineering/pdf`, `Report_project_${pid}.pdf`)
 
 // ── Civil Engineering ─────────────────────────────────────────────────────────
 export const analyzeCivil   = (data)      => api.post('/civil/analyze', data)
