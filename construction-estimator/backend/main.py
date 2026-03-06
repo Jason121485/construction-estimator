@@ -21,14 +21,15 @@ app = FastAPI(
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 # Add NEXT_PUBLIC_FRONTEND_URL to .env / Render env vars for production
-_frontend_url = os.getenv("FRONTEND_URL", "")
 _origins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
+    "https://steady-sorbet-805282.netlify.app",
 ]
-if _frontend_url:
-    _origins.append(_frontend_url)
+_extra = os.getenv("FRONTEND_URL", "")
+if _extra and _extra not in _origins:
+    _origins.append(_extra)
 
 app.add_middleware(
     CORSMiddleware,
