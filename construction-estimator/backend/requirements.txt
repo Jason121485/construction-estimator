@@ -8,3 +8,4 @@ python-jose==3.3.0
 bcrypt==3.2.2
 python-dotenv==1.0.0
 requests==2.31.0
+psycopg2-binary==2.9.9
