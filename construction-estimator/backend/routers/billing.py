@@ -1,12 +1,15 @@
 """
-Stripe billing router for EngEst Pro.
+Lemon Squeezy billing router for EngEst Pro.
 Handles checkout sessions, webhooks, customer portal, invoice history,
 billing status, and admin revenue dashboard.
 """
+import hashlib
+import hmac
+import json
 import os
 from datetime import datetime, timezone
 
-import stripe
+import requests
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -17,43 +20,52 @@ from models import User
 
 router = APIRouter()
 
-# ── Stripe config ──────────────────────────────────────────────────────────────
+# ── Lemon Squeezy config ───────────────────────────────────────────────────────
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+LS_API_KEY     = os.getenv("LEMONSQUEEZY_API_KEY", "")
+LS_STORE_ID    = os.getenv("LS_STORE_ID", "")
+WEBHOOK_SECRET = os.getenv("LS_WEBHOOK_SECRET", "")
+FRONTEND_URL   = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
-WEBHOOK_SECRET   = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-FRONTEND_URL     = os.getenv("FRONTEND_URL", "http://localhost:5173")
-
-PRICE_IDS = {
-    "starter":      os.getenv("STRIPE_PRICE_STARTER", ""),
-    "professional": os.getenv("STRIPE_PRICE_PROFESSIONAL", ""),
-    "enterprise":   os.getenv("STRIPE_PRICE_ENTERPRISE", ""),
+VARIANT_IDS = {
+    "basic":        os.getenv("LS_VARIANT_BASIC", ""),
+    "professional": os.getenv("LS_VARIANT_PROFESSIONAL", ""),
+    "enterprise":   os.getenv("LS_VARIANT_ENTERPRISE", ""),
 }
 
 PLAN_AMOUNTS = {
-    "starter": 9,
-    "professional": 29,
-    "enterprise": 99,
+    "basic":        299,
+    "professional": 599,
+    "enterprise":   1999,
 }
 
-# ── Stripe status → local status mapping ──────────────────────────────────────
 
-def _stripe_to_local_status(stripe_status: str) -> str:
+def _ls_headers():
     return {
-        "trialing": "trial",
-        "active":   "active",
-        "past_due": "past_due",
-        "canceled": "expired",
-        "unpaid":   "expired",
-        "incomplete":         "trial",
-        "incomplete_expired": "expired",
-    }.get(stripe_status, "trial")
+        "Authorization": f"Bearer {LS_API_KEY}",
+        "Accept": "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json",
+    }
+
+
+# ── Status mapping ─────────────────────────────────────────────────────────────
+
+def _ls_to_local_status(ls_status: str) -> str:
+    return {
+        "on_trial":  "trial",
+        "active":    "active",
+        "past_due":  "past_due",
+        "paused":    "past_due",
+        "cancelled": "expired",
+        "expired":   "expired",
+        "unpaid":    "expired",
+    }.get(ls_status, "trial")
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
 
 class CheckoutRequest(BaseModel):
-    plan: str  # starter | professional | enterprise
+    plan: str  # basic | professional | enterprise
 
 
 # ── POST /checkout ─────────────────────────────────────────────────────────────
@@ -63,109 +75,150 @@ def create_checkout_session(
     body: CheckoutRequest,
     user: User = Depends(get_current_user),
 ):
-    if body.plan not in PRICE_IDS:
+    if body.plan not in VARIANT_IDS:
         raise HTTPException(400, "Invalid plan")
-    price_id = PRICE_IDS[body.plan]
-    if not price_id:
-        raise HTTPException(503, "Stripe price not configured for this plan")
-    if not stripe.api_key:
-        raise HTTPException(503, "Stripe not configured — add STRIPE_SECRET_KEY to .env")
+    variant_id = VARIANT_IDS[body.plan]
+    if not variant_id:
+        raise HTTPException(503, "Lemon Squeezy variant not configured for this plan")
+    if not LS_API_KEY:
+        raise HTTPException(503, "Lemon Squeezy not configured — add LEMONSQUEEZY_API_KEY to env")
 
-    session = stripe.checkout.Session.create(
-        customer_email=user.email,
-        payment_method_types=["card"],
-        line_items=[{"price": price_id, "quantity": 1}],
-        mode="subscription",
-        subscription_data={"trial_period_days": 30},
-        success_url=f"{FRONTEND_URL}/billing?success=1",
-        cancel_url=f"{FRONTEND_URL}/pricing",
-        metadata={"user_id": str(user.id), "plan": body.plan},
+    payload = {
+        "data": {
+            "type": "checkouts",
+            "attributes": {
+                "checkout_data": {
+                    "email": user.email,
+                    "custom": {
+                        "user_id": str(user.id),
+                        "plan": body.plan,
+                    },
+                },
+                "product_options": {
+                    "redirect_url": f"{FRONTEND_URL}/billing?success=1",
+                },
+            },
+            "relationships": {
+                "store": {
+                    "data": {"type": "stores", "id": str(LS_STORE_ID)}
+                },
+                "variant": {
+                    "data": {"type": "variants", "id": str(variant_id)}
+                },
+            },
+        }
+    }
+
+    resp = requests.post(
+        "https://api.lemonsqueezy.com/v1/checkouts",
+        headers=_ls_headers(),
+        json=payload,
     )
-    return {"url": session.url}
+    if resp.status_code not in (200, 201):
+        raise HTTPException(503, f"Lemon Squeezy error: {resp.text[:300]}")
+
+    checkout_url = resp.json()["data"]["attributes"]["url"]
+    return {"url": checkout_url}
 
 
 # ── POST /webhook ──────────────────────────────────────────────────────────────
 
 @router.post("/webhook")
-async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+async def ls_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
-    sig     = request.headers.get("stripe-signature", "")
+    sig = request.headers.get("X-Signature", "")
 
-    try:
-        event = stripe.Webhook.construct_event(payload, sig, WEBHOOK_SECRET)
-    except stripe.error.SignatureVerificationError:
-        raise HTTPException(400, "Invalid Stripe signature")
+    if WEBHOOK_SECRET:
+        expected = hmac.new(
+            WEBHOOK_SECRET.encode(), payload, hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(expected, sig):
+            raise HTTPException(400, "Invalid webhook signature")
 
-    evt_type = event["type"]
-    data_obj = event["data"]["object"]
+    data        = json.loads(payload)
+    event_name  = data.get("meta", {}).get("event_name", "")
+    custom_data = data.get("meta", {}).get("custom_data", {})
+    obj         = data.get("data", {})
+    attrs       = obj.get("attributes", {})
 
-    if evt_type == "checkout.session.completed":
-        user_id    = int(data_obj["metadata"].get("user_id", 0))
-        plan       = data_obj["metadata"].get("plan", "starter")
-        sub_id     = data_obj.get("subscription")
-        customer   = data_obj.get("customer")
+    # ── subscription created / updated ────────────────────────────────────────
+    if event_name in ("subscription_created", "subscription_updated"):
+        user_id     = int(custom_data.get("user_id", 0))
+        plan        = custom_data.get("plan", "basic")
+        ls_status   = attrs.get("status", "on_trial")
+        sub_id      = str(obj.get("id", ""))
+        customer_id = str(attrs.get("customer_id", ""))
+
         user = db.query(User).filter(User.id == user_id).first()
-        if user:
-            user.stripe_customer_id     = customer
-            user.stripe_subscription_id = sub_id
-            user.subscription_plan      = plan
-            user.subscription_status    = "trial"
-            user.stripe_subscription_status = "trialing"
-            db.commit()
+        if not user and customer_id:
+            user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
 
-    elif evt_type in ("customer.subscription.created", "customer.subscription.updated"):
-        sub        = data_obj
-        customer   = sub["customer"]
-        stripe_st  = sub["status"]
-        sub_id     = sub["id"]
-        plan_items = sub.get("items", {}).get("data", [])
-        # Find user by stripe_customer_id
-        user = db.query(User).filter(User.stripe_customer_id == customer).first()
         if user:
+            user.stripe_customer_id         = customer_id
             user.stripe_subscription_id     = sub_id
-            user.stripe_subscription_status = stripe_st
-            user.subscription_status        = _stripe_to_local_status(stripe_st)
-            # Update plan from price metadata if available
-            if plan_items:
-                price = plan_items[0].get("price", {})
-                price_id = price.get("id", "")
-                for plan_name, pid in PRICE_IDS.items():
-                    if pid and pid == price_id:
-                        user.subscription_plan = plan_name
-                        break
-            # Set next billing date from current_period_end
-            period_end = sub.get("current_period_end")
-            if period_end:
-                user.next_billing_date = datetime.fromtimestamp(period_end, tz=timezone.utc).replace(tzinfo=None)
+            user.stripe_subscription_status = ls_status
+            user.subscription_plan          = plan
+            user.subscription_status        = _ls_to_local_status(ls_status)
+
+            renews_at = attrs.get("renews_at")
+            if renews_at:
+                try:
+                    user.next_billing_date = datetime.fromisoformat(
+                        renews_at.replace("Z", "+00:00")
+                    ).replace(tzinfo=None)
+                except Exception:
+                    pass
             db.commit()
 
-    elif evt_type == "invoice.payment_succeeded":
-        inv      = data_obj
-        customer = inv["customer"]
-        user = db.query(User).filter(User.stripe_customer_id == customer).first()
+    # ── payment succeeded ─────────────────────────────────────────────────────
+    elif event_name == "subscription_payment_success":
+        sub_id      = str(attrs.get("subscription_id", ""))
+        customer_id = str(attrs.get("customer_id", ""))
+
+        user = db.query(User).filter(User.stripe_subscription_id == sub_id).first()
+        if not user and customer_id:
+            user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+
         if user:
             user.subscription_status        = "active"
             user.stripe_subscription_status = "active"
-            period_end = inv.get("period_end") or inv.get("lines", {}).get("data", [{}])[0].get("period", {}).get("end")
-            if period_end:
-                user.next_billing_date = datetime.fromtimestamp(period_end, tz=timezone.utc).replace(tzinfo=None)
+
+            renews_at = attrs.get("renews_at")
+            if renews_at:
+                try:
+                    user.next_billing_date = datetime.fromisoformat(
+                        renews_at.replace("Z", "+00:00")
+                    ).replace(tzinfo=None)
+                except Exception:
+                    pass
             db.commit()
 
-    elif evt_type == "invoice.payment_failed":
-        customer = data_obj["customer"]
-        user = db.query(User).filter(User.stripe_customer_id == customer).first()
+    # ── payment failed ────────────────────────────────────────────────────────
+    elif event_name == "subscription_payment_failed":
+        sub_id      = str(attrs.get("subscription_id", obj.get("id", "")))
+        customer_id = str(attrs.get("customer_id", ""))
+
+        user = db.query(User).filter(User.stripe_subscription_id == sub_id).first()
+        if not user and customer_id:
+            user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+
         if user:
             user.subscription_status        = "past_due"
             user.stripe_subscription_status = "past_due"
             db.commit()
 
-    elif evt_type == "customer.subscription.deleted":
-        sub      = data_obj
-        customer = sub["customer"]
-        user = db.query(User).filter(User.stripe_customer_id == customer).first()
+    # ── cancelled / expired ───────────────────────────────────────────────────
+    elif event_name in ("subscription_cancelled", "subscription_expired"):
+        sub_id      = str(obj.get("id", ""))
+        customer_id = str(attrs.get("customer_id", ""))
+
+        user = db.query(User).filter(User.stripe_subscription_id == sub_id).first()
+        if not user and customer_id:
+            user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+
         if user:
             user.subscription_status        = "expired"
-            user.stripe_subscription_status = "canceled"
+            user.stripe_subscription_status = "cancelled"
             db.commit()
 
     return {"received": True}
@@ -175,35 +228,47 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/portal")
 def create_portal_session(user: User = Depends(get_current_user)):
-    if not user.stripe_customer_id:
+    if not user.stripe_subscription_id:
         raise HTTPException(400, "No active subscription found. Please upgrade your plan first.")
-    if not stripe.api_key:
-        raise HTTPException(503, "Stripe not configured")
+    if not LS_API_KEY:
+        raise HTTPException(503, "Lemon Squeezy not configured")
 
-    session = stripe.billing_portal.Session.create(
-        customer=user.stripe_customer_id,
-        return_url=f"{FRONTEND_URL}/billing",
+    resp = requests.get(
+        f"https://api.lemonsqueezy.com/v1/subscriptions/{user.stripe_subscription_id}",
+        headers=_ls_headers(),
     )
-    return {"url": session.url}
+    if resp.status_code != 200:
+        raise HTTPException(503, "Could not retrieve subscription details")
+
+    portal_url = resp.json()["data"]["attributes"]["urls"]["customer_portal"]
+    return {"url": portal_url}
 
 
 # ── GET /invoices ──────────────────────────────────────────────────────────────
 
 @router.get("/invoices")
 def get_invoices(user: User = Depends(get_current_user)):
-    if not user.stripe_customer_id or not stripe.api_key:
+    if not user.stripe_subscription_id or not LS_API_KEY:
         return []
 
-    invoices = stripe.Invoice.list(customer=user.stripe_customer_id, limit=10)
+    resp = requests.get(
+        "https://api.lemonsqueezy.com/v1/subscription-invoices",
+        headers=_ls_headers(),
+        params={"filter[subscription_id]": user.stripe_subscription_id},
+    )
+    if resp.status_code != 200:
+        return []
+
+    invoices = resp.json().get("data", [])
     return [
         {
             "id":         inv["id"],
-            "date":       inv["created"],
-            "amount_usd": inv["amount_paid"] / 100,
-            "status":     inv["status"],
-            "pdf_url":    inv.get("invoice_pdf"),
+            "date":       inv["attributes"].get("created_at"),
+            "amount_usd": inv["attributes"].get("total", 0) / 100,
+            "status":     inv["attributes"].get("status"),
+            "pdf_url":    inv["attributes"].get("urls", {}).get("invoice_url"),
         }
-        for inv in invoices["data"]
+        for inv in invoices
     ]
 
 
@@ -217,14 +282,14 @@ def billing_status(user: User = Depends(get_current_user)):
         days_remaining = max(0, delta.days)
 
     return {
-        "plan":                     user.subscription_plan,
-        "status":                   user.subscription_status,
+        "plan":                       user.subscription_plan,
+        "status":                     user.subscription_status,
         "stripe_subscription_status": user.stripe_subscription_status,
-        "trial_end":                user.trial_end,
-        "next_billing_date":        user.next_billing_date,
-        "stripe_subscription_id":   user.stripe_subscription_id,
-        "days_remaining":           days_remaining,
-        "plan_amount":              PLAN_AMOUNTS.get(user.subscription_plan, 0),
+        "trial_end":                  user.trial_end,
+        "next_billing_date":          user.next_billing_date,
+        "stripe_subscription_id":     user.stripe_subscription_id,
+        "days_remaining":             days_remaining,
+        "plan_amount":                PLAN_AMOUNTS.get(user.subscription_plan, 0),
     }
 
 
@@ -235,33 +300,34 @@ def admin_revenue(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # DB stats (fast — always available)
     total_users = db.query(User).count()
     trial_users = db.query(User).filter(User.subscription_status == "trial").count()
 
-    if not stripe.api_key:
+    if not LS_API_KEY:
         return {
-            "mrr": 0.0,
-            "active_subscriptions": 0,
+            "mrr":                    0.0,
+            "active_subscriptions":   0,
             "trialing_subscriptions": 0,
             "past_due_subscriptions": 0,
             "canceled_subscriptions": 0,
-            "total_users": total_users,
-            "trial_users": trial_users,
+            "total_users":            total_users,
+            "trial_users":            trial_users,
         }
 
-    # Stripe stats
-    subs = stripe.Subscription.list(limit=100, status="all")
-    active   = [s for s in subs["data"] if s["status"] == "active"]
-    trialing = [s for s in subs["data"] if s["status"] == "trialing"]
-    past_due = [s for s in subs["data"] if s["status"] == "past_due"]
-    canceled = [s for s in subs["data"] if s["status"] in ("canceled", "unpaid")]
-
-    mrr = sum(
-        s["items"]["data"][0]["price"]["unit_amount"] / 100
-        for s in active
-        if s.get("items", {}).get("data")
+    resp = requests.get(
+        "https://api.lemonsqueezy.com/v1/subscriptions",
+        headers=_ls_headers(),
+        params={"filter[store_id]": LS_STORE_ID, "page[size]": 100},
     )
+    subs = resp.json().get("data", []) if resp.status_code == 200 else []
+
+    active   = [s for s in subs if s["attributes"]["status"] == "active"]
+    trialing = [s for s in subs if s["attributes"]["status"] == "on_trial"]
+    past_due = [s for s in subs if s["attributes"]["status"] in ("past_due", "paused")]
+    canceled = [s for s in subs if s["attributes"]["status"] in ("cancelled", "expired", "unpaid")]
+
+    active_db_users = db.query(User).filter(User.subscription_status == "active").all()
+    mrr = sum(PLAN_AMOUNTS.get(u.subscription_plan, 0) for u in active_db_users)
 
     return {
         "mrr":                    round(mrr, 2),

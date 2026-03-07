@@ -24,13 +24,13 @@ ACCESS_TOKEN_EXPIRE  = timedelta(hours=24)
 # ── Plan Limits ───────────────────────────────────────────────────────────────
 
 PLAN_PROJECT_LIMITS = {
-    "starter":      10,
+    "basic":        10,
     "professional": 50,
     "enterprise":   None,   # None = unlimited
 }
 
 PLAN_BUILDING_TYPES = {
-    "starter":      ["Residential"],
+    "basic":        ["Residential"],
     "professional": ["Residential", "Commercial"],
     "enterprise":   ["Residential", "Commercial", "Industrial", "Infrastructure"],
 }
@@ -101,8 +101,8 @@ def require_active_subscription(user=Depends(get_current_user)):
     """
     now = datetime.utcnow()
 
-    # Stripe-verified subscribers bypass local trial/expiry checks
-    if user.stripe_subscription_status in ("trialing", "active"):
+    # Payment-provider-verified subscribers bypass local trial/expiry checks
+    if user.stripe_subscription_status in ("trialing", "active", "on_trial"):
         return user
 
     if user.subscription_status == "trial":
