@@ -12,8 +12,8 @@ import {
 } from '../utils/api'
 import { parseApiError } from '../utils/parseError'
 
-const PLAN_PRICES = { starter: 9, professional: 29, enterprise: 99 }
-const PLAN_LABELS = { starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' }
+const PLAN_PRICES = { basic: 299, professional: 599, enterprise: 1999 }
+const PLAN_LABELS = { basic: 'Basic', professional: 'Professional', enterprise: 'Enterprise' }
 const STATUS_BADGE = {
   trial:     { label: 'Free Trial',   cls: 'bg-yellow-900/40 text-yellow-300 border-yellow-700/40' },
   active:    { label: 'Active',       cls: 'bg-emerald-900/40 text-emerald-300 border-emerald-700/40' },
@@ -22,14 +22,14 @@ const STATUS_BADGE = {
 }
 
 const OTHER_PLANS = {
-  starter:      ['professional', 'enterprise'],
-  professional: ['starter', 'enterprise'],
-  enterprise:   ['starter', 'professional'],
-  trial:        ['starter', 'professional', 'enterprise'],
+  basic:        ['professional', 'enterprise'],
+  professional: ['basic', 'enterprise'],
+  enterprise:   ['basic', 'professional'],
+  trial:        ['basic', 'professional', 'enterprise'],
 }
 
 const PLAN_FEATURES = {
-  starter:      ['Up to 10 projects', 'All engineering calculators', 'PDF BOQ export'],
+  basic:        ['Up to 10 projects', 'All engineering calculators', 'PDF BOQ export'],
   professional: ['Up to 50 projects', 'Commercial projects', 'Excel + PDF export'],
   enterprise:   ['Unlimited projects', 'Team accounts', 'Priority support'],
 }
@@ -166,7 +166,7 @@ export default function Billing() {
               <p className="text-sm text-gray-400 mt-2">
                 Next billing: <strong className="text-white">{nextBilling}</strong>
                 {' · '}
-                <strong className="text-white">${PLAN_PRICES[plan] ?? 0}/mo</strong>
+                <strong className="text-white">PHP {PLAN_PRICES[plan] ?? 0}/mo</strong>
               </p>
             )}
 
@@ -212,7 +212,7 @@ export default function Billing() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold text-white">{PLAN_LABELS[planKey]}</p>
-                    <p className="text-accent text-lg font-bold">${PLAN_PRICES[planKey]}<span className="text-gray-500 text-xs font-normal">/mo</span></p>
+                    <p className="text-accent text-lg font-bold">PHP {PLAN_PRICES[planKey]}<span className="text-gray-500 text-xs font-normal">/mo</span></p>
                   </div>
                 </div>
                 <ul className="space-y-1.5 flex-1">

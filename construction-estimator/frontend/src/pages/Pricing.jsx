@@ -7,9 +7,9 @@ import { parseApiError } from '../utils/parseError'
 
 const PLANS = [
   {
-    key:     'starter',
-    name:    'Starter',
-    price:   '$9',
+    key:     'basic',
+    name:    'Basic',
+    price:   'PHP 299',
     period:  '/month',
     tagline: 'For small residential projects',
     accent:  false,
@@ -29,7 +29,7 @@ const PLANS = [
   {
     key:     'professional',
     name:    'Professional',
-    price:   '$29',
+    price:   'PHP 599',
     period:  '/month',
     tagline: 'For growing engineering firms',
     accent:  true,
@@ -49,7 +49,7 @@ const PLANS = [
   {
     key:     'enterprise',
     name:    'Enterprise',
-    price:   '$99',
+    price:   'PHP 1,999',
     period:  '/month',
     tagline: 'For large firms & contractors',
     accent:  false,
