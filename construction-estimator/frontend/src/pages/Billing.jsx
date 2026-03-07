@@ -29,7 +29,7 @@ const OTHER_PLANS = {
 }
 
 const PLAN_FEATURES = {
-  basic:        ['Up to 10 projects', 'All engineering calculators', 'PDF BOQ export'],
+  basic:        ['Up to 15 projects', 'All engineering calculators', 'PDF BOQ export'],
   professional: ['Up to 50 projects', 'Commercial projects', 'Excel + PDF export'],
   enterprise:   ['Unlimited projects', 'Team accounts', 'Priority support'],
 }
@@ -39,8 +39,9 @@ function fmt(dateVal) {
   return new Date(dateVal).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function fmtDate(unix) {
-  return new Date(unix * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+function fmtDate(val) {
+  if (!val) return '—'
+  return new Date(val).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 export default function Billing() {
@@ -270,7 +271,7 @@ export default function Billing() {
                 {invoices.map((inv) => (
                   <tr key={inv.id} className="table-row">
                     <td className="px-4 py-2.5 text-gray-400">{fmtDate(inv.date)}</td>
-                    <td className="px-4 py-2.5 font-medium text-white">${inv.amount_usd.toFixed(2)}</td>
+                    <td className="px-4 py-2.5 font-medium text-white">₱{inv.amount_usd.toLocaleString()}</td>
                     <td className="px-4 py-2.5 text-center">
                       <span className={`badge ${
                         inv.status === 'paid'
@@ -301,7 +302,7 @@ export default function Billing() {
       </div>
 
       <p className="text-xs text-gray-600">
-        Payment processing by <strong>Stripe</strong>. We never store your card details.
+        Payment processing by <strong>Lemon Squeezy</strong>. We never store your card details.
         To update payment method or cancel, use the <button onClick={handlePortal} className="text-accent hover:underline">customer portal</button>.
       </p>
     </div>
