@@ -21,6 +21,8 @@ import SiteOverhead from './pages/SiteOverhead'
 import BidSummary from './pages/BidSummary'
 import ConceptualEstimate from './pages/ConceptualEstimate'
 import Billing from './pages/Billing'
+import Terms from './pages/Terms'
+import RefundPolicy from './pages/RefundPolicy'
 
 export default function App() {
   return (
@@ -31,6 +33,8 @@ export default function App() {
           <Route path="/login"   element={<Login />} />
           <Route path="/signup"  element={<Signup />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/terms"   element={<Terms />} />
+          <Route path="/refund"  element={<RefundPolicy />} />
 
           {/* Protected routes — require authentication */}
           <Route
